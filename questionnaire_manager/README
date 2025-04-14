@@ -1,0 +1,107 @@
+# Questionnaire Cloner
+
+A Python-based tool for managing questionnaires between different tenants in the Credo AI system. This tool allows you to download, upload, and manage questionnaires along with their associated triggers and actions.
+
+## Features
+
+- Download questionnaires from source tenant
+- Upload questionnaires to target tenant
+- Copy questionnaire structure including:
+  - Sections
+  - Questions
+  - Evidence types
+  - Select options
+  - Alert triggers
+- Manage triggers and actions:
+  - Copy triggers from source to target
+  - Map and maintain trigger relationships
+  - Transfer associated actions
+- Environment-based configuration
+- JWT token management
+- Error handling and logging
+
+## Prerequisites
+
+- Python 3.x
+- Access to Credo AI API (API tokens required)
+- Required Python packages (see `requirements.txt`)
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd questionnaire_manager
+```
+
+2. Install required packages:
+```bash
+pip install -r requirements.txt
+```
+
+3. Set up your environment variables by creating a `.env` file:
+```env
+OLD_API_TOKEN=your_old_api_token
+OLD_JWT_TOKEN=your_old_jwt_token
+OLD_TENANT=old_tenant_name
+OLD_BASE_PATH=https://api.credo.ai
+OLD_QUESTIONNAIRE_ID=your_questionnaire_id
+OLD_QUESTIONNAIRE_VERSION=version_number
+
+NEW_API_TOKEN=your_new_api_token
+NEW_JWT_TOKEN=your_new_jwt_token
+NEW_TENANT=new_tenant_name
+NEW_BASE_PATH=https://api.credo.ai
+```
+
+## Usage
+
+### Download a Questionnaire
+
+To ONLY download a questionnaire from the source tenant:
+
+```bash
+python download_questionnaire.py
+```
+
+### Upload a Questionnaire
+
+To ONLY upload a questionnaire to the target tenant:
+
+```bash
+python upload_questionnaire.py
+```
+
+### Copy Triggers and Actions
+
+To download questionnaire, upload new questionnaire and copy triggers & actions between tenants:
+
+```bash
+python triggers_actions.py
+```
+
+## Project Structure
+
+- `download_questionnaire.py` - Handles downloading questionnaires from source tenant
+- `upload_questionnaire.py` - Manages uploading questionnaires to target tenant
+- `triggers_actions.py` - Copies triggers and actions between tenants
+- `get_bearer_token.py` - Manages JWT token generation and authentication
+- `q_manager_utils.py` - Common utilities and error handling
+- `write_to_json.py` - JSON file handling utilities
+
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## Support
+
+For support, please contact chika@credo.ai
+
+## Acknowledgments
+
+- Credo AI API documentation

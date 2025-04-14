@@ -1,0 +1,292 @@
+{
+    "data": {
+        "attributes": {
+            "info": {
+                "description": "Identify the risk classification for your use case depending on its intended purpose, category, and uses of general purpose AI models.",
+                "logo_url": "https://credoai-web-prod.s3-us-west-2.amazonaws.com/app/policy-center/assets/images/eu.png",
+                "introduction": "Identify Requirements under the EU AI Act"
+            },
+            "name": "EU AI Act Intake Questionnaire",
+            "version": 8,
+            "metadata": {
+                "description": "Identify the risk classification for your use case depending on its intended purpose, category, and uses of general purpose AI models.",
+                "custom": true,
+                "archived": false,
+                "show_on_create": false,
+                "introduction": "Identify Requirements under the EU AI Act",
+                "logoUrl": "https://credoai-web-prod.s3-us-west-2.amazonaws.com/app/policy-center/assets/images/eu.png"
+            },
+            "spec": "1.0",
+            "target": "use_case",
+            "key": "EUAIA",
+            "kind": "Questionnaire",
+            "sections": [
+                {
+                    "id": "XGSxXYNDBG7rHSwGay9SkG",
+                    "description": null,
+                    "title": "Scope",
+                    "questions": [
+                        {
+                            "hidden": false,
+                            "id": "NBt9qKT2tYkmXBDsqHsfqg",
+                            "description": "- The system or model will be accessible in the European Union (EU)\n- The system or model's output will be used in the EU\n- The system or model is likely to impact individuals in the EU\n\n[Click here](https://european-union.europa.eu/principles-countries-history/country-profiles_en) for a list of current EU Member States.",
+                            "required": false,
+                            "question": "Will your system or model meet any of the following criteria?",
+                            "evidence_type": "select",
+                            "multiple": false,
+                            "select_options": [
+                                "Yes",
+                                "No"
+                            ],
+                            "alert_triggers": []
+                        }
+                    ]
+                },
+                {
+                    "id": "9Ga4tcJtCqFfwU57K256kd",
+                    "description": null,
+                    "title": "Entity",
+                    "questions": [
+                        {
+                            "hidden": true,
+                            "id": "LjcQhqkCwRiNdbkZqHi5c6",
+                            "description": "- \u2018Provider\u2019 means a natural or legal person, public authority, agency or other body that develops an AI system or a general purpose AI model or that has an AI system or a general purpose AI model developed and places them on the market or puts the system into service under its own name or trademark, whether for payment or free of charge.\n- 'Deployer' means any natural or legal person, public authority, agency or other body using an AI system under its authority except where the AI system is used in the course of a personal non-professional activity.\n- \u2018Distributor\u2019 means any natural or legal person in the supply chain, other than the provider or the importer, that makes an AI system available on the Union market.\n- \u2018Importer\u2019 means any natural or legal person located or established in the Union that places on the market an AI system that bears the name or trademark of a natural or legal person established outside the Union.",
+                            "required": false,
+                            "question": "In the context of this use case, what entity type is your organization?",
+                            "evidence_type": "select",
+                            "multiple": false,
+                            "select_options": [
+                                "Provider",
+                                "Deployer",
+                                "Distributor",
+                                "Importer"
+                            ],
+                            "alert_triggers": []
+                        },
+                        {
+                            "hidden": true,
+                            "id": "6tqUp8SkhSnNvFZW9ztdak",
+                            "description": "\u2018Substantial modification\u2019 means a change to the AI system after its placing on the market or putting into service which is not foreseen or planned in the initial conformity assessment by the provider or results in a modification to the intended purpose for which the AI system has been assessed.",
+                            "required": false,
+                            "question": "Have you modified the system by changing the name or trademark, modifying the intended purpose of the system already in operation, perform a substantial modification to the system?",
+                            "evidence_type": "select",
+                            "multiple": false,
+                            "select_options": [
+                                "Yes",
+                                "No"
+                            ],
+                            "alert_triggers": []
+                        }
+                    ]
+                },
+                {
+                    "id": "aG4sxf4wksyPc8GZ2MqLdn",
+                    "description": null,
+                    "title": "Risk Classification",
+                    "questions": [
+                        {
+                            "hidden": true,
+                            "id": "kt2fmF5RSwXFVDFKoeCb6H",
+                            "description": "A \u2018safety component of a product or system\u2019 means a component of a product or of a system which fulfills a safety function for that product or system, or the failure or malfunctioning of which endangers the health and safety of persons or property.",
+                            "required": false,
+                            "question": "[Provider] Is your AI system intended to be used as a safety component of a product?",
+                            "evidence_type": "select",
+                            "multiple": false,
+                            "select_options": [
+                                "Yes",
+                                "No"
+                            ],
+                            "alert_triggers": []
+                        },
+                        {
+                            "hidden": true,
+                            "id": "UEJWVJKySQCF3SFoEhydqD",
+                            "description": "- Be used for the sole purpose of scientific research and development;\n- Perform a narrow procedural task;\n- Improve the result of a previously completed human activity;\n- Detect decision-making patterns or deviations from prior decision-making patterns and is not meant to replace or influence the previously completed human assessment, without proper human review; or\n- Perform a preparatory task to an assessment relevant for the purpose of a high-risk AI system.",
+                            "required": false,
+                            "question": "[Provider] Is your AI system intended to be used for any of the following purposes?",
+                            "evidence_type": "select",
+                            "multiple": false,
+                            "select_options": [
+                                "Yes",
+                                "No"
+                            ],
+                            "alert_triggers": []
+                        },
+                        {
+                            "hidden": true,
+                            "id": "JRn3WHm9uBvwCtQC7VZ2K7",
+                            "description": "- Subliminal Behavior Distortion: Systems that \u201cdeploy subliminal . . . or purposefully manipulative or deceptive techniques with the objective to or the effect of materially distorting a person\u2019s . . . behavior by appreciably impairing the person\u2019s ability to make an informed decision thereby causing the person to take a decision that that person would not have otherwise taken\u201d in a manner that causes or is likely to cause significant harm.\n- Exploitative Behavior Distortion: Systems that exploits the vulnerabilities of a person or group of persons due to their \u201cage, disability, or a specific social or economic situation\u201d with the objective or material effect of distorting their behavior in a manner that causes (or is likely to cause) significant harm.\n- Biometric Categorization to Infer Specific Personal Traits: Systems that use biometric categorization systems to categorize natural persons based on their biometric data to deduce or infer their \u201crace, political opinions, trade union membership, religious or philosophical beliefs, sex life, or sexual orientation.\u201d\n- Social Scoring: Systems that evaluate or classify natural persons or groups of persons over a certain time period \u201cbased on their social behavior or known, inferred or predicted personal or personality characteristics\u201d leading to either detrimental or unfavorable treatment in an unrelated social context and/or detrimental or unfavorable treatment that is unjustified or disproportionate to that social behavior.\n- Person Based Predictive Policing: Systems that evaluate a natural person to predict the risk that the person will commit a criminal offense based solely on profiling of their personality traits and characteristics.\n- Creation or Expansion of Facial Recognition Databases: Systems that scrape facial images from the internet or CCTV footage in an untargeted manner to expand or create facial recognition databases.\n- Emotional Recognition in Schools and the Workplace: Systems that infer emotions of a natural person in the areas of a workplace and/or educational systems except for those systems that are used for medical or safety reasons.",
+                            "required": false,
+                            "question": "[Provider] Is your AI system intended to be used for any of the following purposes?",
+                            "evidence_type": "select",
+                            "multiple": false,
+                            "select_options": [
+                                "Yes",
+                                "No"
+                            ],
+                            "alert_triggers": []
+                        },
+                        {
+                            "hidden": true,
+                            "id": "sGS4f6KM7Qc9Z3WrXByEHP",
+                            "description": "High-Risk Categories Include:\n- Remote biometric identification and categorisation;\n- Critical infrastructure;\n- Education and vocational training;\n- Employment, workers management and access to self-employment;\n- Access to and enjoyment of essential private services and essential public services and benefits;\n- Law enforcement;\n- Migration, asylum and border control management;\n- Administration of justice and democratic processes",
+                            "required": false,
+                            "question": "[Provider] Does your AI system fall into a high-risk category?",
+                            "evidence_type": "select",
+                            "multiple": false,
+                            "select_options": [
+                                "Yes",
+                                "No"
+                            ],
+                            "alert_triggers": []
+                        },
+                        {
+                            "hidden": true,
+                            "id": "a6fC4R5iuU5Rg6PhsVcoBC",
+                            "description": "A \u2018safety component of a product or system\u2019 means a component of a product or of a system which fulfills a safety function for that product or system, or the failure or malfunctioning of which endangers the health and safety of persons or property.",
+                            "required": false,
+                            "question": "[Deployer] Is your AI system intended to be used as a safety component of a product?",
+                            "evidence_type": "select",
+                            "multiple": false,
+                            "select_options": [
+                                "Yes",
+                                "No"
+                            ],
+                            "alert_triggers": []
+                        },
+                        {
+                            "hidden": true,
+                            "id": "edJ9YWevtovdksjUpV4dC2",
+                            "description": "- be used for the sole purpose of scientific research and development;\n- perform a narrow procedural task;\n- improve the result of a previously completed human activity;\n- detect decision-making patterns or deviations from prior decision-making patterns and is not meant to replace or influence the previously completed human assessment, without proper human review; or\n- perform a preparatory task to an assessment relevant for the purpose of a high-risk AI system.",
+                            "required": false,
+                            "question": "[Deployer] Is your AI system intended to be used for any of the following purposes?",
+                            "evidence_type": "select",
+                            "multiple": false,
+                            "select_options": [
+                                "Yes",
+                                "No"
+                            ],
+                            "alert_triggers": []
+                        },
+                        {
+                            "hidden": true,
+                            "id": "fU5UZiaDY7ihYbyLRrWN7d",
+                            "description": "- Subliminal Behavior Distortion: Systems that \u201cdeploy subliminal . . . or purposefully manipulative or deceptive techniques with the objective to or the effect of materially distorting a person\u2019s . . . behavior by appreciably impairing the person\u2019s ability to make an informed decision thereby causing the person to take a decision that that person would not have otherwise taken\u201d in a manner that causes or is likely to cause significant harm;\n- Exploitative Behavior Distortion: Systems that exploits the vulnerabilities of a person or group of persons due to their \u201cage, disability, or a specific social or economic situation\u201d with the objective or material effect of distorting their behavior in a manner that causes (or is likely to cause) significant harm;\n- Biometric Categorization to Infer Specific Personal Traits: Systems that use biometric categorization systems to categorize natural persons based on their biometric data to deduce or infer their \u201crace, political opinions, trade union membership, religious or philosophical beliefs, sex life, or sexual orientation;\u201d\n- Social Scoring: Systems that evaluate or classify natural persons or groups of persons over a certain time period \u201cbased on their social behavior or known, inferred or predicted personal or personality characteristics\u201d leading to either detrimental or unfavorable treatment in an unrelated social context and/or detrimental or unfavorable treatment that is unjustified or disproportionate to that social behavior;\n- Person Based Predictive Policing: Systems that evaluate a natural person to predict the risk that the person will commit a criminal offense based solely on profiling of their personality traits and characteristics;\n- Creation or Expansion of Facial Recognition Databases: Systems that scrape facial images from the internet or CCTV footage in an untargeted manner to expand or create facial recognition databases;\n- Emotional Recognition in Schools and the Workplace: Systems that infer emotions of a natural person in the areas of a workplace and/or educational systems except for those systems that are used for medical or safety reasons.",
+                            "required": false,
+                            "question": "[Deployer] Is your AI system intended to be used for any of the following purposes?",
+                            "evidence_type": "select",
+                            "multiple": false,
+                            "select_options": [
+                                "Yes",
+                                "No"
+                            ],
+                            "alert_triggers": []
+                        },
+                        {
+                            "hidden": true,
+                            "id": "hunvhfQNSmpWFS3qhVEQxi",
+                            "description": "High-Risk Categories Include:\n- Remote biometric identification and categorisation;\n- Critical infrastructure;\n- Education and vocational training;\n- Employment, workers management and access to self-employment;\n- Access to and enjoyment of essential private services and essential public services and benefits;\n- Law enforcement;\n- Migration, asylum and border control management;\n- Administration of justice and democratic processes.",
+                            "required": false,
+                            "question": "[Deployer] Does your AI system fall into a high-risk category?",
+                            "evidence_type": "select",
+                            "multiple": false,
+                            "select_options": [
+                                "Yes",
+                                "No"
+                            ],
+                            "alert_triggers": []
+                        }
+                    ]
+                },
+                {
+                    "id": "Pg5U3Px3EJVcCLAXpZtLi5",
+                    "description": null,
+                    "title": "Transparency Obligations",
+                    "questions": [
+                        {
+                            "hidden": true,
+                            "id": "5Cb4xFfMtDUBLMcJ43ZhRn",
+                            "description": null,
+                            "required": false,
+                            "question": "[Provider] Is your AI system intended to directly interact with natural persons?",
+                            "evidence_type": "select",
+                            "multiple": false,
+                            "select_options": [
+                                "Yes",
+                                "No"
+                            ],
+                            "alert_triggers": []
+                        },
+                        {
+                            "hidden": true,
+                            "id": "Xt2RuWNBRaHsYWWpxhFN3f",
+                            "description": null,
+                            "required": false,
+                            "question": "[Provider] Does your AI system generate synthetic audio, image, text, or video content?",
+                            "evidence_type": "select",
+                            "multiple": false,
+                            "select_options": [
+                                "Yes",
+                                "No"
+                            ],
+                            "alert_triggers": []
+                        },
+                        {
+                            "hidden": true,
+                            "id": "cLS69MLz8U7WttjecFpuNQ",
+                            "description": null,
+                            "required": false,
+                            "question": "[Deployer] Is the AI system you are deploying an emotion recognition system or a biometric categorisation system?",
+                            "evidence_type": "select",
+                            "multiple": false,
+                            "select_options": [
+                                "Yes",
+                                "No"
+                            ],
+                            "alert_triggers": []
+                        },
+                        {
+                            "hidden": true,
+                            "id": "frbmU93GTVfskj7jz3fj8f",
+                            "description": null,
+                            "required": false,
+                            "question": "[Deployer] Does your AI system generate synthetic audio, image, text, or video content?",
+                            "evidence_type": "select",
+                            "multiple": false,
+                            "select_options": [
+                                "Yes",
+                                "No"
+                            ],
+                            "alert_triggers": []
+                        }
+                    ]
+                },
+                {
+                    "id": "w5FhRqek2GootqskRj5H65",
+                    "description": null,
+                    "title": "General Purpose AI",
+                    "questions": [
+                        {
+                            "hidden": false,
+                            "id": "mQYC9HicutyQTby8DTWvMA",
+                            "description": "\u2018General purpose AI system\u2019 means an AI system which is based on a general purpose AI model, that has the capability to serve a variety of purposes, both for direct use as well as for integration in other AI systems.",
+                            "required": false,
+                            "question": "Does your Use Case make use of General Purpose AI (GPAI) models?",
+                            "evidence_type": "select",
+                            "multiple": false,
+                            "select_options": [
+                                "Yes",
+                                "No"
+                            ],
+                            "alert_triggers": []
+                        }
+                    ]
+                }
+            ]
+        },
+        "id": "EUAIA+8",
+        "type": "questionnaires",
+        "relationships": {}
+    },
+    "included": []
+}
