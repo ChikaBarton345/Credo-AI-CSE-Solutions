@@ -56,28 +56,10 @@ NEW_BASE_PATH=https://api.credo.ai
 
 ## Usage
 
-### Download a Questionnaire
-
-To ONLY download a questionnaire from the source tenant:
+### Copy Custom Fields, Questionnaire, Triggers and Actions
 
 ```bash
-python download_questionnaire.py
-```
-
-### Upload a Questionnaire
-
-To ONLY upload a questionnaire to the target tenant:
-
-```bash
-python upload_questionnaire.py
-```
-
-### Copy Triggers and Actions
-
-To download questionnaire, upload new questionnaire and copy triggers & actions between tenants:
-
-```bash
-python triggers_actions.py
+python main.py
 ```
 
 ## Project Structure

@@ -69,6 +69,11 @@ class BaseError(Exception):
             "source": self.source,
             "timestamp": self.timestamp,
         }
+class CustomFieldsError(BaseError):
+    """Raised when custom fields creation fails."""
+    def __init__(self, message: str, **kwargs):
+        kwargs.setdefault('error_type', 'CustomFieldsError')  
+        super().__init__(message, **kwargs)
 
 class TriggersActionsError(BaseError):
     """Raised when triggers and actions creation fails."""

@@ -12,8 +12,8 @@
                 "description": "Identify the risk classification for your use case depending on its intended purpose, category, and uses of general purpose AI models.",
                 "custom": true,
                 "archived": false,
-                "show_on_create": false,
                 "introduction": "Identify Requirements under the EU AI Act",
+                "show_on_create": false,
                 "logoUrl": "https://credoai-web-prod.s3-us-west-2.amazonaws.com/app/policy-center/assets/images/eu.png"
             },
             "spec": "1.0",

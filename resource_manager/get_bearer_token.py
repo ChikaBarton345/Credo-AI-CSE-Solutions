@@ -28,7 +28,7 @@ class TokenManager:
         requests.exceptions.RequestException: For other request-related errors
         ValueError: If JSON parsing fails
     """
-        print(f"=== Getting JWT_TOKEN  for {self.version} version of the questionnaire")
+        # print(f"=== Getting JWT_TOKEN  for {self.version} version of the questionnaire")
         if self.version == "new":            
             API_TOKEN = os.getenv("NEW_API_TOKEN")
             TENANT = os.getenv("NEW_TENANT")
@@ -105,7 +105,7 @@ class TokenManager:
             with open(env_path, 'w') as file:
                 for key, value in env_content.items():
                     file.write(f'{key}={value}\n')
-                print(f"Token written to '{env_path}' as JWT_TOKEN.")
+                # print(f"Token written to '{env_path}' as JWT_TOKEN.")
         except IOError as e:
             print(f'Failed to write to .env file in write_token_to_file: {e}')
 

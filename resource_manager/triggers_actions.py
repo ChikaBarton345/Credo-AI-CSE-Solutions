@@ -12,10 +12,13 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=".env", override=True)
 
 class TriggersAndActions:
-    def __init__(self):
+    def __init__(self, original_questionnaire, questionnaires):
         try:
             self.questionnaire_id = os.getenv("OLD_QUESTIONNAIRE_ID")
-            self.questionnaire_version = os.getenv("OLD_QUESTIONNAIRE_VERSION")            
+            self.questionnaire_version = os.getenv("OLD_QUESTIONNAIRE_VERSION")  
+            self.original_questionnaire_id = original_questionnaire.get('data', {}).get('id', {})
+            self.questionnaires = questionnaires
+            self.new_questionnaire_id = questionnaires.get('new_questionnaire_id', {})           
             old_token_manager = TokenManager(version = "old")
             old_token = old_token_manager.run()
             new_token_manager = TokenManager(version = "new")
@@ -449,7 +452,7 @@ class TriggersAndActions:
         try:
             created_actions = []
             self.actions = self.get_actions()
-            print(f"\n=== Creating actions in {self.new_tenant}questionnaires: {self.new_questionnaire_id} === \n")
+            print(f"\n=== Creating actions in {self.new_tenant} questionnaires: {self.new_questionnaire_id} === \n")
             
             matching_actions = self.find_matching_action()
             if matching_actions:
@@ -526,22 +529,18 @@ class TriggersAndActions:
         
         Returns:
             None
-        """
-
-        old_questionnaire= Questionnaire_download()
-        self.original_questionnaire = old_questionnaire.get_questionnaire()  
-        questionnaire_upload = Questionnaire_upload()
-        self.questionnaires = questionnaire_upload.run() 
-        self.original_questionnaire_id = self.original_questionnaire.get('data', {}).get('id', {})
-        self.new_questionnaire_id = self.questionnaires.get('new_questionnaire_id', {}) 
+        """        
         trigger_mapping = self.create_triggers()
         created_actions = self.create_actions(trigger_mapping)
         print(f"Sucessfully created {self.success_count} triggers")
         print(f"Sucessfully created {len(created_actions)} actions")
 
 def main():
-
-        triggers_and_actions = TriggersAndActions()
-        triggers_and_actions.run()
+    old_questionnaire= Questionnaire_download()
+    original_questionnaire = old_questionnaire.get_questionnaire()  
+    questionnaire_upload = Questionnaire_upload()
+    questionnaires = questionnaire_upload.run() 
+    triggers_and_actions = TriggersAndActions(original_questionnaire, questionnaires)
+    triggers_and_actions.run()
 if __name__ == "__main__":
     sys.exit(main())
