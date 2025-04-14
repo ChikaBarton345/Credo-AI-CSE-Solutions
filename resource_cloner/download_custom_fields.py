@@ -29,6 +29,25 @@ class CustomFieldsDownloader:
             raise CustomFieldsError(f"Failed to initialize custom fields: {str(e)}")
     
     def get_custom_fields(self):
+        """
+        Retrieves custom fields from the old tenant via API call.
+
+        Makes a GET request to fetch all custom fields from the old tenant's endpoint.
+        Custom fields define additional metadata and attributes that can be attached to 
+        questionnaire elements.
+
+        Returns:
+            dict: JSON response containing custom fields data if successful
+
+        Raises:
+            CustomFieldsError: If there is an error retrieving the custom fields,
+                             with detailed error information including:
+                             - Request URL
+                             - Request headers
+                             - Error message
+                             - Source function
+                             - Error line number
+        """
         try:
             print(f"=== Getting Custom Fields from {self.tenant_old} === ")
             response = requests.get(f"{self.base_path}/api/v2/{self.tenant_old}/custom_fields", headers = self.headers_old)

@@ -26,6 +26,22 @@ class CustomFieldsUploader:
 
     
     def format_custom_fields(self, custom_field):
+        """
+        Formats a custom field for API upload by extracting and restructuring the required attributes.
+
+        Takes a custom field object from the source tenant and formats it into the structure 
+        expected by the custom fields API endpoint. Preserves key attributes like element type,
+        metadata, options, etc. while conforming to the required payload format.
+
+        Args:
+            custom_field (dict): The custom field object containing attributes to format
+
+        Returns:
+            dict: Formatted custom field payload matching API requirements
+
+        Raises:
+            CustomFieldsError: If there is an error formatting the custom field attributes
+        """
         try:
             formatted_custom_fields = {
                 "data": {
@@ -48,6 +64,20 @@ class CustomFieldsUploader:
             raise CustomFieldsError(f"Failed to format custom fields: {str(e)}")
     
     def upload_custom_field(self, formatted_custom_field):
+        """
+        Uploads a single formatted custom field to the target tenant via API.
+
+        Makes a POST request to create the custom field in the target tenant. Handles success,
+        duplicate field (422), and error responses appropriately. Custom fields define additional
+        metadata that can be attached to questionnaire elements.
+
+        Args:
+            formatted_custom_field (dict): The formatted custom field payload to upload
+
+        Raises:
+            CustomFieldsError: If there is an error uploading the custom field
+            APIError: If the API request fails with an unexpected status code
+        """
         try:
             print(f"Creating custom field: {formatted_custom_field.get('data').get('attributes').get('name')}")
             response = requests.post(f"{self.base_path}/api/v2/{self.tenant_new}/custom_fields", headers = self.headers_new, json=formatted_custom_field)

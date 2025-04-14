@@ -29,30 +29,33 @@ A Python-based tool for managing questionnaires between different tenants in the
 ## Installation
 
 1. Clone the repository:
-```bash
-git clone <repository-url>
-cd questionnaire_manager
-```
+
+    ```
+    git clone <repository-url>
+    cd resource_manager
+    ```
 
 2. Install required packages:
-```bash
-pip install -r requirements.txt
-```
+
+    ```
+    pip install -r requirements.txt
+    ```
 
 3. Set up your environment variables by creating a `.env` file:
-```env
-OLD_API_TOKEN=your_old_api_token
-OLD_JWT_TOKEN=your_old_jwt_token
-OLD_TENANT=old_tenant_name
-OLD_BASE_PATH=https://api.credo.ai
-OLD_QUESTIONNAIRE_ID=your_questionnaire_id
-OLD_QUESTIONNAIRE_VERSION=version_number
 
-NEW_API_TOKEN=your_new_api_token
-NEW_JWT_TOKEN=your_new_jwt_token
-NEW_TENANT=new_tenant_name
-NEW_BASE_PATH=https://api.credo.ai
-```
+    ```
+    OLD_API_TOKEN=your_old_api_token
+    OLD_JWT_TOKEN=your_old_jwt_token
+    OLD_TENANT=old_tenant_name
+    OLD_BASE_PATH=https://api.credo.ai
+    OLD_QUESTIONNAIRE_ID=your_questionnaire_id
+    OLD_QUESTIONNAIRE_VERSION=version_number
+
+    NEW_API_TOKEN=your_new_api_token
+    NEW_JWT_TOKEN=your_new_jwt_token
+    NEW_TENANT=new_tenant_name
+    NEW_BASE_PATH=https://api.credo.ai
+    ```
 
 ## Usage
 
@@ -70,6 +73,8 @@ python main.py
 - `get_bearer_token.py` - Manages JWT token generation and authentication
 - `q_manager_utils.py` - Common utilities and error handling
 - `write_to_json.py` - JSON file handling utilities
+- `upload_custom_fields.py` - Handles uploading custom fields to target tenant
+- `download_custom_fields.py` - Handles downloading custom fields from source tenant 
 
 
 ## Contributing
