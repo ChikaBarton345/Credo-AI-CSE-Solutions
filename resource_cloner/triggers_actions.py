@@ -413,8 +413,13 @@ class TriggersAndActions:
             if response.status_code == 201:
                 print(f"✓ Sucessfully added action type {action.get('data', {}).get('attributes', {}).get('type', {})} to trigger id: {action.get('data', {}).get('attributes', {}).get('trigger_ids', {})[0]}\n")
                 return response.json()
+            elif response.status_code == 422:
+                self.skip_count += 1
+                print(f"ℹ Action already exists, skipping")
+                return id  
             else:
-                response.raise_for_status()
+               response.raise_for_status()   
+           
         except Exception as e:
             details = {
                 "request url": response.request.url if response.request else None,
