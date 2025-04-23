@@ -415,8 +415,11 @@ class TriggersAndActions:
                 return response.json()
             elif response.status_code == 422:
                 self.skip_count += 1
-                print(f"ℹ Action already exists, skipping")
+                print(f"ℹ Action already exists, skipping...")
                 return id  
+            elif response.status_code == 500:
+                print(f"ℹ Error creating action: {response.json()}, continuing...")
+                self.error_count += 1
             else:
                response.raise_for_status()   
            
