@@ -61,7 +61,7 @@ class Questionnaire:
 def main():
     questionnaire_manager = Questionnaire()
     questionnaire = questionnaire_manager.get_questionnaire()
-    write_to_json = WriteToJson(questionnaire, "questionnaire.json")
-    write_to_json.write_pretty_json()
+    # write_to_json = WriteToJson(questionnaire, "questionnaire.json")
+    # write_to_json.write_pretty_json()
 if __name__ == "__main__":
     main()
