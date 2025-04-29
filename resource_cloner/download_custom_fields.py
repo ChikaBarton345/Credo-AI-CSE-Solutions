@@ -1,81 +1,78 @@
+from pathlib import Path
+from typing import Any, Dict
+
 import requests
-from typing import Dict
-from q_manager_utils import BaseError, CustomFieldsError, APIError
-from dotenv import load_dotenv
-import os
+from dotenv import dotenv_values, load_dotenv
 from get_bearer_token import TokenManager
-import sys
+from q_manager_utils import APIError, CustomFieldsError
 
 load_dotenv(dotenv_path=".env", override=True)
 
+
 class CustomFieldsDownloader:
-    def __init__(self):
-        try:
-            token_manager = TokenManager(version="old")
-            old_token=token_manager.run()          
-            token_manager = TokenManager(version="new")
-            new_token=token_manager.run()
-            
-            self.base_path = os.getenv("OLD_BASE_PATH")
-            self.tenant_old = os.getenv("OLD_TENANT")
-            self.tenant_new = os.getenv("NEW_TENANT")
-            self.headers_old = {"Authorization": f"Bearer {old_token}"}
-            self.headers_new = {"Authorization": f"Bearer {new_token}"}
-            self.success_count = 0
-            self.skip_count = 0
-            self.error_count = 0
-        except Exception as e:
-            print(f"Error during custom fields initialization: {e}")
-            raise CustomFieldsError(f"Failed to initialize custom fields: {str(e)}")
-    
-    def get_custom_fields(self):
-        """
-        Retrieves custom fields from the old tenant via API call.
+    """Download custom fields from a source tenant."""
 
-        Makes a GET request to fetch all custom fields from the old tenant's endpoint.
-        Custom fields define additional metadata and attributes that can be attached to 
-        questionnaire elements.
+    def __init__(self) -> None:
+        """Initialize the downloader with proper credentials.
 
-        Returns:
-            dict: JSON response containing custom fields data if successful
 
         Raises:
-            CustomFieldsError: If there is an error retrieving the custom fields,
-                             with detailed error information including:
-                             - Request URL
-                             - Request headers
-                             - Error message
-                             - Source function
-                             - Error line number
+            `CustomFieldsError`: If initialization fails due to missing credentials
+                or token acquisition errors.
         """
+
         try:
-            print(f"=== Getting Custom Fields from {self.tenant_old} === ")
-            response = requests.get(f"{self.base_path}/api/v2/{self.tenant_old}/custom_fields", headers = self.headers_old)
+            old_token = TokenManager(version="old").get_token()
+            if not old_token:
+                raise CustomFieldsError("Failed to obtain source tenant token.")
+
+            env_vars = dotenv_values(Path.cwd() / ".env")
+            self.base_path = env_vars.get("OLD_BASE_PATH")
+            self.tenant_old = env_vars.get("OLD_TENANT")
+            self.headers_old = {"Authorization": f"Bearer {old_token}"}
+
+            self.success_count = 0
+            self.error_count = 0
+
+        except Exception as exc:
+            error_msg = f"Error during custom fields initialization: {exc}"
+            print(error_msg)
+            raise CustomFieldsError(error_msg)
+
+    def get_custom_fields(self) -> Dict[str, Any]:
+        """Retrieve custom fields from the source tenant.
+
+        Returns:
+            (Dict[str, Any]): JSON response containing custom fields data.
+
+        Raises:
+            `CustomFieldsError`: If retrieval fails, with detailed error information
+        """
+        api_url = f"{self.base_path}/api/v2/{self.tenant_old}/custom_fields"
+
+        try:
+            print(f"Retrieving custom fields from: {self.tenant_old}")
+            response = requests.get(api_url, headers=self.headers_old)
             if response.status_code in [200, 201]:
-                print(f"✓ Successfully retrieved Custom Fields from {self.tenant_old}\n")
+                print(
+                    f"✓ Successfully retrieved {len(response.json().get('data', []))}"
+                    " Custom Fields"
+                )
                 return response.json()
-        except Exception as e:
-            details = {
-                    "request_url": f"{self.base_path}/api/v2/{self.tenant_old}/custom_fields",
-                    "request_headers": self.headers_old,
-                    "error_message": str(e)
-                }
-            raise CustomFieldsError(
-                message="Failed to retrieve custom fields",
-                error_type="RetrievalError",
-                details=details,
-                source="get_custom_fields",
-                error_line=sys.exc_info()[2].tb_lineno
-            )
-    
+            err_msg = f"API error: {response.status_code} - {response.text}"
+            print(f"✗ {err_msg}")
+            raise APIError(err_msg)
+        except Exception as exc:
+            print(f"✗ Error retrieving custom fields: {exc}")
+            raise CustomFieldsError(f"Failed to retrieve custom fields: {exc}")
+
     def run(self):
         return self.get_custom_fields()
 
+
 def main():
-    custom_fields_downloader = CustomFieldsDownloader()
-    custom_fields_downloader.run()
-    # print(custom_fields)
-    # write_to_json = WriteToJson(custom_fields, "custom_fields.json")
-    # write_to_json.write_pretty_json()
+    custom_fields = CustomFieldsDownloader().get_custom_fields()
+
+
 if __name__ == "__main__":
     main()
