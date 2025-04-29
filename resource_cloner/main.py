@@ -2,8 +2,8 @@
 # from upload_questionnaires import QuestionnaireManager
 from upload_custom_fields import CustomFieldsUploader
 from triggers_actions import TriggersAndActions
-from download_questionnaire import Questionnaire as Questionnaire_download
-from upload_questionnaire import Questionnaire as Questionnaire_upload
+from download_questionnaire import QuestionnaireDownloader as Questionnaire_download
+from upload_questionnaire import QuestionnaireUploader as Questionnaire_upload
 
 def main():
     # Main function to orchestrate the migration of custom fields and triggers/actions
@@ -14,11 +14,11 @@ def main():
     custom_fields_uploader.run()
 
     old_questionnaire= Questionnaire_download()
-    original_questionnaire = old_questionnaire.get_questionnaire()  
+    original_questionnaire = old_questionnaire.get_questionnaire()
 
     questionnaire_upload = Questionnaire_upload()
-    questionnaires = questionnaire_upload.run() 
-    
+    questionnaires = questionnaire_upload.run()
+
     triggers_and_actions = TriggersAndActions(original_questionnaire, questionnaires)
     triggers_and_actions.run()
 

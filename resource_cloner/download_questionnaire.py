@@ -1,67 +1,92 @@
+from pathlib import Path
+from typing import Any, Dict
+
 import requests
-from typing import Dict
-from q_manager_utils import BaseError, QuestionnaireError, APIError
-from write_to_json import WriteToJson
-from dotenv import load_dotenv
-import os
+from dotenv import dotenv_values, load_dotenv
 from get_bearer_token import TokenManager
-import sys
+from q_manager_utils import QuestionnaireError
+from utils import export_to_json
 
 load_dotenv(dotenv_path=".env", override=True)
 
-class Questionnaire:
-    def __init__(self):
+
+class QuestionnaireDownloader:
+    def __init__(self) -> None:
+        """Initialize with credentials from environment variables.
+
+        Raises:
+            `QuestionnaireError`: If initialization fails
+        """
         try:
-            token_manager = TokenManager(version="old")
-            token=token_manager.run()          
-            self.questionnaire_id = os.getenv("OLD_QUESTIONNAIRE_ID")
-            self.questionnaire_version = os.getenv("OLD_QUESTIONNAIRE_VERSION")
-            self.base_path = os.getenv("OLD_BASE_PATH")
-            self.tenant = os.getenv("OLD_TENANT")
-            self.jwt_token = os.getenv("OLD_JWT_TOKEN")
-            self.headers = {"Authorization": f"Bearer {token}"}
-            self.success_count = 0
-            self.skip_count = 0
-            self.error_count = 0
-        except Exception as e:
-            print(f"Error during questionnaire initialization: {e}")
-            raise QuestionnaireError(f"Failed to initialize questionnaire: {str(e)}")
-    
+            self.token = TokenManager(version="old").get_token()
+            env_vars = dotenv_values(Path.cwd() / ".env")
+            self.base_path = env_vars.get("OLD_BASE_PATH")
+            self.tenant = env_vars.get("OLD_TENANT")
+            self.q_id = env_vars.get("OLD_QUESTIONNAIRE_ID")
+            self.q_ver = env_vars.get("OLD_QUESTIONNAIRE_VERSION")
+            self.headers = {
+                "Content-type": "application/vnd.api+json",
+                "Accept": "application/vnd.api+json",
+                "Authorization": f"Bearer {self.token}",
+            }
+            self.list_questionnaires()
+        except Exception as exc:
+            print(f"Error during questionnaire initialization: {exc}")
+            raise QuestionnaireError(f"Failed to initialize questionnaire: {exc}")
+
+    def list_questionnaires(self) -> Dict[str, Any]:
+        """List all questionnaires available in the tenant.
+
+        Returns:
+            Dict[str, Any]: JSON response containing questionnaire list
+
+        Raises:
+            QuestionnaireError: If the API request fails
+        """
+        url = f"https://api.credo.ai/api/v2/{self.tenant}/questionnaire_bases"
+        print(f"Listing questionnaires for tenant: {self.tenant}")
+
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+
+        questionnaire_count = len(response.json().get("data", []))
+        print(f"Successfully retrieved {questionnaire_count} questionnaires")
+        return response.json()
+
     def get_questionnaire(self):
+        """Retrieve a questionnaire by ID and version.
+
+        Returns:
+            Dict: The questionnaire data.
+
+        Raises:
+            `QuestionnaireError`: If retrieval fails.
+        """
+        url = f"{self.base_path}/api/v2/{self.tenant}/questionnaires/{self.q_id}+{self.q_ver}"
+
         try:
-            print(f"Getting questionnaire: {self.questionnaire_id}+{self.questionnaire_version} from {self.tenant}")
-            response = requests.get(f"{self.base_path}/api/v2/{self.tenant}/questionnaires/{self.questionnaire_id}+{self.questionnaire_version}", headers = self.headers)
-            if response.status_code in [200, 201]:
-                print(f"✓ Successfully retrieved {self.questionnaire_id}+{self.questionnaire_version} from {self.tenant}")
-                write_to_json = WriteToJson(response.json(), "questionnaire.json")
-                write_to_json.write_pretty_json()
-                response.raise_for_status()
-                return response.json()
-            else:
-                response.raise_for_status()
-            
-        except Exception as e:
-            details = {
-                    "questionnaire_id": self.questionnaire_id,
-                    "questionnaire_version": self.questionnaire_version,
-                    "response_status": response.status_code,
-                    "response_body": response.text, 
-                    "request_url": response.request.url,
-                    "request_headers": response.request.headers
-                }
+            print(f"Getting questionnaire: {self.q_id}+{self.q_ver}")
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
+            print("Successfully retrieved questionnaire.")
+            return response.json()
+
+        except requests.RequestException as exc:
+            print(f"Failed to retrieve questionnaire: {exc}")
             raise QuestionnaireError(
                 message="Failed to retrieve questionnaire",
                 error_type="RetrievalError",
-                status_code=getattr(e.response, 'status_code', None),
-                details=details,
+                details={"url": url, "error": str(exc)},
                 source="get_questionnaire",
-                error_line=sys.exc_info()[2].tb_lineno
             )
-       
+
+
 def main():
-    questionnaire_manager = Questionnaire()
+    questionnaire_manager = QuestionnaireDownloader()
     questionnaire = questionnaire_manager.get_questionnaire()
-    # write_to_json = WriteToJson(questionnaire, "questionnaire.json")
-    # write_to_json.write_pretty_json()
+    export_to_json(questionnaire, "questionnaire.json")
+    print(1)
+
+
 if __name__ == "__main__":
     main()

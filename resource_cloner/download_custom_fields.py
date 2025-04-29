@@ -22,14 +22,14 @@ class CustomFieldsDownloader:
         """
 
         try:
-            old_token = TokenManager(version="old").get_token()
-            if not old_token:
+            token = TokenManager(version="old").get_token()
+            if not token:
                 raise CustomFieldsError("Failed to obtain source tenant token.")
 
             env_vars = dotenv_values(Path.cwd() / ".env")
             self.base_path = env_vars.get("OLD_BASE_PATH")
-            self.tenant_old = env_vars.get("OLD_TENANT")
-            self.headers_old = {"Authorization": f"Bearer {old_token}"}
+            self.tenant = env_vars.get("OLD_TENANT")
+            self.headers = {"Authorization": f"Bearer {token}"}
 
             self.success_count = 0
             self.error_count = 0
@@ -48,30 +48,32 @@ class CustomFieldsDownloader:
         Raises:
             `CustomFieldsError`: If retrieval fails, with detailed error information
         """
-        api_url = f"{self.base_path}/api/v2/{self.tenant_old}/custom_fields"
+        url = f"{self.base_path}/api/v2/{self.tenant}/custom_fields"
+        print(f"Retrieving custom fields from: {self.tenant}")
 
         try:
-            print(f"Retrieving custom fields from: {self.tenant_old}")
-            response = requests.get(api_url, headers=self.headers_old)
-            if response.status_code in [200, 201]:
-                print(
-                    f"✓ Successfully retrieved {len(response.json().get('data', []))}"
-                    " Custom Fields"
-                )
-                return response.json()
-            err_msg = f"API error: {response.status_code} - {response.text}"
-            print(f"✗ {err_msg}")
-            raise APIError(err_msg)
-        except Exception as exc:
-            print(f"✗ Error retrieving custom fields: {exc}")
-            raise CustomFieldsError(f"Failed to retrieve custom fields: {exc}")
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
 
-    def run(self):
-        return self.get_custom_fields()
+            data = response.json()
+            count = len(data.get("data", []))
+            print(f"Success. Number of custom fields retrieved: {count}")
+            return data
+
+        except requests.HTTPError as http_err:
+            err_msg = f"API error: {response.status_code} - {response.text}: {http_err}"
+            print(err_msg)
+            raise APIError(err_msg)
+
+        except Exception as exc:
+            print(f"Error retrieving custom fields: {exc}")
+            raise CustomFieldsError(f"Failed to retrieve custom fields: {exc}")
 
 
 def main():
     custom_fields = CustomFieldsDownloader().get_custom_fields()
+    print(custom_fields)
+    print(1)
 
 
 if __name__ == "__main__":

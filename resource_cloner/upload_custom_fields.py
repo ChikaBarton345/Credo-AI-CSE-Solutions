@@ -135,36 +135,24 @@ class CustomFieldsUploader:
                 headers=self.headers_new,
                 json=custom_field,
             )
-            status_handlers = {
-                (200, 201): lambda: self._handle_success(field_name),
-                (422,): lambda: self._handle_existing(field_name),
-            }
 
-            for codes, handler in status_handlers.items():
-                if response.status_code in codes:
-                    return handler()
+            if response.status_code in (200, 201):
+                print(f"✓ Successfully uploaded custom field: {field_name}\n")
+                self.success_count += 1
+                return True
 
-            # If no handler is found, raise an `APIError`.
+            if response.status_code == 422:
+                print(f"↷ Custom field already exists: {field_name} Skipping...\n")
+                self.skip_count += 1
+                return False
+
             raise APIError(
-                f"Failed to upload custom field: {response.status_code} {response.text}"
+                f"Failed custom field upload: {response.status_code} - {response.text}"
             )
-        except Exception as exc:  # Catch all other exceptions with context.
-            err_msg = f"Error during custom field upload: {exc}"
-            print(err_msg)
+        except Exception as exc:
+            print(f"Error during custom field upload: {exc}")
             self.error_count += 1
-            raise CustomFieldsError(err_msg)
-
-    def _handle_success(self, field_name: str) -> bool:
-        """Handle successful custom field creation."""
-        print(f"✓ Successfully uploaded custom field: {field_name}\n")
-        self.success_count += 1
-        return True
-
-    def _handle_existing(self, field_name: str) -> bool:
-        """Handle the case where a custom field already exists."""
-        print(f"↷ Custom field already exists: {field_name} Skipping...\n")
-        self.skip_count += 1
-        return False
+            raise CustomFieldsError(f"Error during custom field upload: {exc}")
 
     def upload_custom_fields(self) -> Dict[str, int]:
         """Upload all custom fields to the target tenant.

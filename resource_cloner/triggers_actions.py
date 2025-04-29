@@ -3,8 +3,8 @@ import json
 from typing import Dict, List, Optional, Union
 import os
 import sys
-from download_questionnaire import Questionnaire as Questionnaire_download
-from upload_questionnaire import Questionnaire as Questionnaire_upload
+from download_questionnaire import QuestionnaireDownloader as Questionnaire_download
+from upload_questionnaire import QuestionnaireUploader as Questionnaire_upload
 from get_bearer_token import TokenManager
 from q_manager_utils import TriggersActionsError, APIError
 from dotenv import load_dotenv
@@ -15,10 +15,10 @@ class TriggersAndActions:
     def __init__(self, original_questionnaire, questionnaires):
         try:
             self.questionnaire_id = os.getenv("OLD_QUESTIONNAIRE_ID")
-            self.questionnaire_version = os.getenv("OLD_QUESTIONNAIRE_VERSION")  
+            self.questionnaire_version = os.getenv("OLD_QUESTIONNAIRE_VERSION")
             self.original_questionnaire_id = original_questionnaire.get('data', {}).get('id', {})
             self.questionnaires = questionnaires
-            self.new_questionnaire_id = questionnaires.get('new_questionnaire_id', {})           
+            self.new_questionnaire_id = questionnaires.get('new_questionnaire_id', {})
             old_token_manager = TokenManager(version = "old")
             old_token = old_token_manager.run()
             new_token_manager = TokenManager(version = "new")
@@ -34,7 +34,7 @@ class TriggersAndActions:
         except Exception as e:
             print(f"Error during triggers and actions initialization: {e}")
             raise TriggersActionsError(f"Failed to initialize triggers and actions : {str(e)}")
-        
+
     def get_triggers(self):
         try:
             print(f"\n=== Getting triggers from tenant: {self.old_tenant} ===")
@@ -56,7 +56,7 @@ class TriggersAndActions:
             raise TriggersActionsError(
                 message=f"Unexpected error while getting triggers from Credo AI API: {str(e)}"
             )
-    
+
     def format_trigger(self, trigger, matching_section):
         """
         Formats a trigger payload for API request by extracting and validating required fields from the input trigger and matching section.
@@ -88,7 +88,7 @@ class TriggersAndActions:
             else:
                 raise ValueError(f"No value found for description while formatting trigger with description: {description}")
             if matching_section.get('new_question_id', {}):
-                trigger_payload["data"]["attributes"]["data"]["question_id"] = matching_section.get('new_question_id', {})        
+                trigger_payload["data"]["attributes"]["data"]["question_id"] = matching_section.get('new_question_id', {})
             else:
                 raise ValueError(f"No value found for question_id while formatting trigger with question_id: {matching_section.get('new_question_id', {})}")
             if matching_section.get('section_id', {}):
@@ -107,7 +107,7 @@ class TriggersAndActions:
             return trigger_payload
         except Exception as e:
             details = {
-                "error_message": str(e), 
+                "error_message": str(e),
                 'trigger': trigger,
                 'matching_section': matching_section
             }
@@ -139,11 +139,11 @@ class TriggersAndActions:
             or None if no match is found
         """
         try:
-            
+
             trigger_question_id = trigger.get("attributes", {}).get("data", {}).get("question_id")
-          
+
             if trigger_question_id:
-                match = {}                
+                match = {}
                 for section_pair in zipped_sections:
                     original_section_questions = section_pair.get("original section", {}).get("questions")
                     for question in original_section_questions:
@@ -156,7 +156,7 @@ class TriggersAndActions:
                                     new_question_id = copy_question.get("id")
                                     break
                             match = {"new_question_id": new_question_id, "section_id": section_id}
-                            
+
                 return match
         except Exception as e:
             details = {
@@ -174,8 +174,8 @@ class TriggersAndActions:
 
     def create_trigger(self, payload):
         """
-        Creates a new trigger in the new tenant using the provided payload. A trigger is a rule that can be 
-        attached to a question to enforce certain conditions or validations. The trigger will be created via 
+        Creates a new trigger in the new tenant using the provided payload. A trigger is a rule that can be
+        attached to a question to enforce certain conditions or validations. The trigger will be created via
         an API call to the new tenant's endpoint.
 
         Args:
@@ -191,8 +191,8 @@ class TriggersAndActions:
             str: The ID of the newly created trigger if successful
             None: If trigger already exists (HTTP 422) or creation fails
         """
-        try:    
-            print(f"Creating trigger with description: {payload.get('data', {}).get('attributes', {}).get('description', {})}")    
+        try:
+            print(f"Creating trigger with description: {payload.get('data', {}).get('attributes', {}).get('description', {})}")
             response = requests.post(f"{self.base_path}/api/v2/{self.new_tenant}/triggers", headers=self.new_headers, json=payload)
             if response.status_code == 201:
                 self.success_count += 1
@@ -217,11 +217,11 @@ class TriggersAndActions:
                     source="create_trigger",
                     error_line=sys.exc_info()[2].tb_lineno if sys.exc_info()[2] else None
                 )
-            
+
         except Exception as e:
-            
+
             raise TriggersActionsError(message=f"TriggersActionsError while creating trigger: {str(e)}")
-    
+
     def create_triggers(self):
         """
         Creates triggers in the new tenant by mapping existing triggers from the old tenant.
@@ -231,12 +231,12 @@ class TriggersAndActions:
         2. Finds matching sections and question mappings between original and copied questionnaires
         3. Formats trigger payloads for the new tenant
         4. Creates triggers in the new tenant
-        
+
         Returns:
             list: List of trigger mappings (old_trigger_id to new_trigger_id)
         """
         try:
-            
+
             triggers_response = self.get_triggers()
             self.all_old_triggers = []
             created_triggers = []
@@ -244,7 +244,7 @@ class TriggersAndActions:
             print(f"== Creating triggers in {self.new_tenant} questionnaire id: {self.new_questionnaire_id}==\n")
             for trigger in triggers_response.get('data', []):
                 matching_section = self.find_matching_section_for_trigger(trigger, self.questionnaires.get('old_new_questionnaire_map', {}))
-                
+
                 if matching_section:
                     old_trigger_id = trigger.get("id")
                     self.all_old_triggers.append(old_trigger_id)
@@ -252,7 +252,7 @@ class TriggersAndActions:
                     new_trigger_id = self.create_trigger(formatted_trigger_payload)
                     old_new_trigger_map={"old_trigger_id": old_trigger_id, "new_trigger_id": new_trigger_id}
                     trigger_mapping.append(old_new_trigger_map)
-                   
+
             return trigger_mapping
         except Exception as e:
             raise TriggersActionsError(
@@ -264,18 +264,18 @@ class TriggersAndActions:
                 error_line=sys.exc_info()[2].tb_lineno if sys.exc_info()[2] else None,
                 source="create_triggers"
             )
-   
+
     def get_actions(self):
        """
        Retrieves all trigger actions from the old tenant via API call.
-       
+
        This method makes a GET request to fetch all trigger actions associated with
        the old tenant. Trigger actions define what happens when a trigger condition
        is met, such as showing alerts or requiring additional evidence.
-       
+
        Returns:
            dict: JSON response containing the trigger actions data
-           
+
        Raises:
            APIError: If the API request fails
            TriggersActionsError: If there is an unexpected error during execution
@@ -304,27 +304,27 @@ class TriggersAndActions:
                    source="get_actions",
                    error_line=sys.exc_info()[2].tb_lineno if sys.exc_info()[2] else None
                )
-    
+
     def format_action(self, old_new_trigger_map, matching_action):
         """
         Formats a trigger action for the new tenant by updating IDs and structuring the payload.
-        
+
         This method takes a trigger mapping (old to new IDs) and an action from the old tenant,
-        updates any questionnaire-related IDs using the mapping, and formats it into the 
+        updates any questionnaire-related IDs using the mapping, and formats it into the
         required payload structure for creating an action in the new tenant.
-        
+
         Args:
             old_new_trigger_map (dict): Mapping between old and new trigger IDs
             matching_action (dict): The action data from the old tenant to be formatted
-            
+
         Returns:
             dict: Formatted action payload ready to be sent to the API
-            
+
         Raises:
             TriggersActionsError: If there is an error during action formatting
         """
         try:
-            
+
             if matching_action.get("attributes", {}).get("data", {}).get("question_id"):
                 matching_action["attributes"]["data"]["question_id"] = self.map_questionnaire_id(self.questionnaires.get('old_new_questionnaire_map', {}), matching_action.get("attributes", {}).get("data", {}).get("question_id"))
                 matching_action["attributes"]["data"]["section_id"] = self.map_questionnaire_id(self.questionnaires.get('old_new_questionnaire_map', {}), matching_action.get("attributes", {}).get("data", {}).get("section_id"))
@@ -350,27 +350,27 @@ class TriggersAndActions:
                 error_line=sys.exc_info()[2].tb_lineno,
                 source="format_action"
             )
-    
+
     def find_matching_action(self):
         """
         Finds actions that match triggers in self.all_old_triggers.
-        
-        Iterates through all actions and identifies those associated with triggers 
-        in self.all_old_triggers. For each matching action, creates a tuple of 
-        (action, matching_trigger_id) and adds it to the results. Logs a warning 
+
+        Iterates through all actions and identifies those associated with triggers
+        in self.all_old_triggers. For each matching action, creates a tuple of
+        (action, matching_trigger_id) and adds it to the results. Logs a warning
         if an action has multiple triggers.
-        
+
         Returns:
             list or None: List of (action, trigger_id) tuples for matching actions,
                          or None if no matches found
-                         
+
         Raises:
             TriggersActionsError: If there is an error during the matching process
         """
         try:
             matching_actions = []
-            for action in self.actions["data"]:                
-                matching_trigger_ids = [trigger_id for trigger_id in action.get('attributes', {}).get('trigger_ids', {}) 
+            for action in self.actions["data"]:
+                matching_trigger_ids = [trigger_id for trigger_id in action.get('attributes', {}).get('trigger_ids', {})
                                      if trigger_id in self.all_old_triggers]
                 if matching_trigger_ids:
                     if len(action.get('attributes', {}).get('trigger_ids', {})) > 1:
@@ -388,21 +388,21 @@ class TriggersAndActions:
                 error_line=sys.exc_info()[2].tb_lineno,
                 source="find_matching_action"
             )
-    
+
     def create_action(self, action):
         """
         Creates a new trigger action in the system.
-        
+
         Takes a formatted action payload and sends a POST request to create the action
         in the new tenant. The action is associated with a specific trigger ID.
-        
+
         Args:
             action (dict): The formatted action payload containing the action details
                           and trigger ID mapping
-        
+
         Returns:
             dict: The created action response from the API if successful
-            
+
         Raises:
             TriggersActionsError: If there is an error creating the action,
                                  with detailed error information
@@ -416,13 +416,13 @@ class TriggersAndActions:
             elif response.status_code == 422:
                 self.skip_count += 1
                 print(f"ℹ Action already exists, skipping...")
-                return id  
+                return id
             elif response.status_code == 500:
                 print(f"ℹ Error creating action: {response.json()}, continuing...")
                 self.error_count += 1
             else:
-               response.raise_for_status()   
-           
+               response.raise_for_status()
+
         except Exception as e:
             details = {
                 "request url": response.request.url if response.request else None,
@@ -438,21 +438,21 @@ class TriggersAndActions:
                     source="create_action",
                     error_line=sys.exc_info()[2].tb_lineno if sys.exc_info()[2] else None
                 )
-    
+
     def create_actions(self, triggers_mapping):
         """
         Creates multiple trigger actions based on a mapping of old to new trigger IDs.
-        
+
         Iterates through existing actions in the old tenant, finds matching actions and triggers,
         formats the action payloads with new trigger IDs, and creates the actions in the new tenant.
-        
+
         Args:
             triggers_mapping (list): List of dictionaries mapping old trigger IDs to new trigger IDs
                                    in the format [{"old_trigger_id": "123", "new_trigger_id": "456"}, ...]
-        
+
         Returns:
             list: The created action responses from the API if successful
-            
+
         Raises:
             TriggersActionsError: If there is an error creating the actions,
                                  with detailed error information
@@ -461,11 +461,11 @@ class TriggersAndActions:
             created_actions = []
             self.actions = self.get_actions()
             print(f"\n=== Creating actions in {self.new_tenant} questionnaires: {self.new_questionnaire_id} === \n")
-            
+
             matching_actions = self.find_matching_action()
             if matching_actions:
                 for matching_action, matching_trigger_id in matching_actions:
-                    old_new_trigger_map = next((trigger_map for trigger_map in triggers_mapping 
+                    old_new_trigger_map = next((trigger_map for trigger_map in triggers_mapping
                                               if trigger_map["old_trigger_id"] == matching_trigger_id), None)
                     if old_new_trigger_map:
                         formatted_action_payload = self.format_action(old_new_trigger_map, matching_action.copy())
@@ -482,11 +482,11 @@ class TriggersAndActions:
                 error_line=sys.exc_info()[2].tb_lineno,
                 source="create_actions"
             )
-    
+
     def map_questionnaire_id(self, section_pairs, id_):
         """
         Maps IDs between original and copied questionnaire sections/questions.
-        
+
         Takes a list of section pairs (original and copy) and an ID to look up.
         Creates mappings between old and new IDs for both sections and questions.
         Returns the corresponding mapped ID if found in any of the mappings.
@@ -527,17 +527,17 @@ class TriggersAndActions:
     def run(self):
         """
         Main execution method for the TriggersAndActions class.
-        
+
         This method orchestrates the process of creating triggers and actions between
         the old and new tenants. It performs the following steps:
         1. Loads the original questionnaire from the local file
         2. Uploads the questionnaire to the new tenant
         3. Creates triggers in the new tenant
         4. Creates actions in the new tenant
-        
+
         Returns:
             None
-        """        
+        """
         trigger_mapping = self.create_triggers()
         created_actions = self.create_actions(trigger_mapping)
         print(f"Sucessfully created {self.success_count} triggers")
@@ -545,9 +545,9 @@ class TriggersAndActions:
 
 def main():
     old_questionnaire= Questionnaire_download()
-    original_questionnaire = old_questionnaire.get_questionnaire()  
+    original_questionnaire = old_questionnaire.get_questionnaire()
     questionnaire_upload = Questionnaire_upload()
-    questionnaires = questionnaire_upload.run() 
+    questionnaires = questionnaire_upload.run()
     triggers_and_actions = TriggersAndActions(original_questionnaire, questionnaires)
     triggers_and_actions.run()
 if __name__ == "__main__":
