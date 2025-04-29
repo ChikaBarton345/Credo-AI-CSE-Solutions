@@ -1,124 +1,88 @@
-import requests
-import json
-from dotenv import load_dotenv
-import os
+from pathlib import Path
+from typing import Literal, Optional
 
-loaded = load_dotenv(dotenv_path=".env", override=True)
+import requests
+from dotenv import dotenv_values, load_dotenv, set_key
+
+load_dotenv(dotenv_path=".env", override=True)
 
 
 class TokenManager:
-    def __init__(self, version: str):
-        self.version = version
+    def __init__(self, version: Literal["old", "new"]) -> None:
+        """Initialize a `TokenManager`.
 
-    def get_token(self):
+        Args:
+            version (Literal["old", "new"]): Specifies whether to use the old or new
+                token version.
         """
-        Retrieves an access token from the Credo AI API using credentials from environment variables.
-    
-    Returns:
-        str or None: The access token if successful, None if the request fails or token is not found
-            in the response.
-    
-    Notes:
-        - Requires API_KEY environment variable to be set
-        - Makes a POST request to 'https://{BASE_PATH}/auth/exchange'
-        - Automatically handles HTTP errors and JSON parsing
-    
-    Raises:
-        requests.exceptions.HTTPError: If the HTTP request fails
-        requests.exceptions.RequestException: For other request-related errors
-        ValueError: If JSON parsing fails
-    """
-        # print(f"=== Getting JWT_TOKEN  for {self.version} version of the questionnaire")
-        if self.version == "new":            
-            API_TOKEN = os.getenv("NEW_API_TOKEN")
-            TENANT = os.getenv("NEW_TENANT")
-            BASE_PATH = os.getenv("NEW_BASE_PATH")
-        elif self.version == "old":
-            API_TOKEN = os.getenv("OLD_API_TOKEN")
-            TENANT = os.getenv("OLD_TENANT")
-            BASE_PATH = os.getenv("OLD_BASE_PATH")
+        self.version = version
+        self.version_prefix = self.version.upper()
+        self.load_env_vars()
 
-        url = f"{BASE_PATH}/auth/exchange"
-        data = {
-            "api_token": API_TOKEN,
-            "tenant": TENANT
-        }
+    def load_env_vars(self) -> None:
+        """Load variables from the .env file in the current working dir."""
+        env_path = Path.cwd() / ".env"
+        self.env_vars = dotenv_values(env_path) if env_path.exists() else {}
+        self.api_token = self.env_vars.get(f"{self.version_prefix}_API_TOKEN")
+        self.tenant = self.env_vars.get(f"{self.version_prefix}_TENANT")
+        self.base_path = self.env_vars.get(f"{self.version_prefix}_BASE_PATH")
+
+    def get_token(self, write_to_file: bool = True) -> Optional[str]:
+        """Get an access token from the Credo AI API.
+
+        This method requires an `API_KEY` environment variable to then make a POST
+        request to: `https://{BASE_PATH}/auth/exchange`
+
+        Args:
+            write_to_file (bool, optional): Whether to automatically write the token
+                to the .env file if successful. Defaults to True.
+
+        Returns:
+            Optional[str]: The access token if successful, None otherwise.
+
+        Raises:
+            `requests.exceptions.RequestException`: For request-related errors
+            `ValueError`: If JSON parsing of the response fails.
+        """
+        url = f"{self.base_path}/auth/exchange"
+        data = {"api_token": self.api_token, "tenant": self.tenant}
 
         try:
             response = requests.post(url, json=data)
-            response.raise_for_status()  
-            token = response.json().get('access_token')
-            
-            if token:
-                return token
-            else:
-                print('Access token not found in the response.')
-                return None
-
-        except requests.exceptions.HTTPError as http_err:
-            print(f'HTTP error in get_token occurred: {http_err}')
-        except requests.exceptions.RequestException as err:
-            print(f'Other error in get_token occurred: {err}')
-        except ValueError:
-            print('Error parsing JSON response in get_token.')
-        return None
-
-    def write_token_to_file(self, token):
-        """
-        Writes or updates a jwt token to the .env file in the same directory as the script.
-        
-        Args:
-            token (str): The jwt token to write to the .env file.
-        
-        Notes:
-            - The token is written as 'JWT_TOKEN={token}' in the .env file
-            - Preserves other existing environment variables in the .env file
-            - Creates the .env file if it doesn't exist
-            - Uses the script's directory as the location for the .env file
-        
-        Raises:
-            IOError: If there are issues writing to the .env file
-        """
-        try:
-            # Get the directory where the script is located
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            env_path = os.path.join(script_dir, '.env')
-            
-            # Read existing .env file content
-            env_content = {}
-            try:
-                with open(env_path, 'r') as file:
-                    for line in file:
-                        if '=' in line:
-                            key, value = line.strip().split('=', 1)
-                            env_content[key] = value
-            except FileNotFoundError:
-                pass  # File doesn't exist yet, will create it
-            
-            # Update or add the API_TOKEN
-            if self.version == "new":
-                env_content['NEW_JWT_TOKEN'] = token
-            elif self.version == "old":
-                env_content['OLD_JWT_TOKEN'] = token
-            
-            # Write back to .env file
-            with open(env_path, 'w') as file:
-                for key, value in env_content.items():
-                    file.write(f'{key}={value}\n')
-                # print(f"Token written to '{env_path}' as JWT_TOKEN.")
-        except IOError as e:
-            print(f'Failed to write to .env file in write_token_to_file: {e}')
-
-    def run(self):
-        
-        token = self.get_token()
-        if token:
-            self.write_token_to_file(token)
+            response.raise_for_status()
+            token = response.json().get("access_token")
+            if token and write_to_file:
+                self.save_token_to_env(token)
             return token
-            
-        else:
-            print('Failed to obtain token, no value for JWT_TOKEN written to .env file.')
+        except (requests.exceptions.RequestException, ValueError) as err:
+            print(f"Error obtaining JWT from API token: {err}")
 
-if __name__ == '__main__':
-    token_manager = TokenManager(version="new")
-    token_manager.run()
+    def save_token_to_env(self, token: str) -> bool:
+        """Write or update a JWT token in the .env file in the current working dir.
+
+        This method creates an .env file if it doesn't exist, then stores the token as
+        `{VERSION}_JWT_TOKEN` based on the instance version while preserving existing
+        env vars.
+
+        Args:
+            token (str): JWT token to be stored.
+
+        Returns:
+            bool: True if the token was successfully written, False otherwise.
+        """
+        env_path = Path.cwd() / ".env"
+        token_key = f"{self.version_prefix}_JWT_TOKEN"
+
+        try:
+            set_key(env_path, token_key, token)
+            return True
+        except IOError as err:
+            print(f"Failed to write to .env file: {err}")
+            return False
+
+
+if __name__ == "__main__":
+    for ver in ["old", "new"]:
+        tm = TokenManager(ver)
+        tm.get_token()
+    print(1)
