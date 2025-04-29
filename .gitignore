@@ -3,6 +3,7 @@ data
 logs
 .vscode
 .env
+cstool
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
