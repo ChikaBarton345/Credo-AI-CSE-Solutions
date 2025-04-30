@@ -18,7 +18,7 @@ class QuestionnaireDownloader:
             `QuestionnaireError`: If initialization fails
         """
         try:
-            self.token = TokenManager(version="old").get_token()
+            token = TokenManager(version="old").get_token()
             env_vars = dotenv_values(Path.cwd() / ".env")
             self.base_path = env_vars.get("OLD_BASE_PATH")
             self.tenant = env_vars.get("OLD_TENANT")
@@ -27,7 +27,7 @@ class QuestionnaireDownloader:
             self.headers = {
                 "Content-type": "application/vnd.api+json",
                 "Accept": "application/vnd.api+json",
-                "Authorization": f"Bearer {self.token}",
+                "Authorization": f"Bearer {token}",
             }
             self.list_questionnaires()
         except Exception as exc:
@@ -50,7 +50,7 @@ class QuestionnaireDownloader:
         response.raise_for_status()
 
         questionnaire_count = len(response.json().get("data", []))
-        print(f"Successfully retrieved {questionnaire_count} questionnaires")
+        print(f"Number of questionnaires retrieved: {questionnaire_count}")
         return response.json()
 
     def get_questionnaire(self):
@@ -68,7 +68,7 @@ class QuestionnaireDownloader:
             print(f"Getting questionnaire: {self.q_id}+{self.q_ver}")
             response = requests.get(url, headers=self.headers)
             response.raise_for_status()
-            print("Successfully retrieved questionnaire.")
+            print(f"Successfully retrieved questionnaire: {self.q_id}+{self.q_ver}")
             return response.json()
 
         except requests.RequestException as exc:
@@ -82,8 +82,9 @@ class QuestionnaireDownloader:
 
 
 def main():
-    questionnaire_manager = QuestionnaireDownloader()
-    questionnaire = questionnaire_manager.get_questionnaire()
+    """Given its ID and version number, download a questionnaire."""
+    q_downloader = QuestionnaireDownloader()
+    questionnaire = q_downloader.get_questionnaire()
     export_to_json(questionnaire, "questionnaire.json")
     print(1)
 

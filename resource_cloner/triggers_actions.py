@@ -547,7 +547,7 @@ def main():
     old_questionnaire= Questionnaire_download()
     original_questionnaire = old_questionnaire.get_questionnaire()
     questionnaire_upload = Questionnaire_upload()
-    questionnaires = questionnaire_upload.run()
+    questionnaires = questionnaire_upload.download_and_upload_copy()
     triggers_and_actions = TriggersAndActions(original_questionnaire, questionnaires)
     triggers_and_actions.run()
 if __name__ == "__main__":

@@ -1,31 +1,38 @@
-import requests
-from typing import Dict
-from q_manager_utils import BaseError, QuestionnaireError
-from download_questionnaire import QuestionnaireDownloader
-import os
-import json
-from dotenv import load_dotenv, dotenv_values
 import sys
-from get_bearer_token import TokenManager
 from pathlib import Path
+from typing import Any, Dict, List
 
-loaded = load_dotenv(dotenv_path=".env", override=True)
+import requests
+from dotenv import dotenv_values, load_dotenv
+from download_questionnaire import QuestionnaireDownloader
+from get_bearer_token import TokenManager
+from q_manager_utils import QuestionnaireError
+from utils import export_to_json
+
+load_dotenv(dotenv_path=".env", override=True)
+
 
 class QuestionnaireUploader:
-    def __init__(self):
+    def __init__(self, q_orig: Dict[str, Any]):
+        """Initialize an object to upload questionnaires.
+
+        Args:
+            q_orig (Dict[str, Any]): The questionnaire data to prepare and then upload.
+
+        Raises:
+            `QuestionnaireError`: If something unexpected happens during initialization.
+        """
         try:
             token = TokenManager(version="new").get_token()
             env_vars = dotenv_values(Path.cwd() / ".env")
+            self.q_orig = q_orig
             self.base_path = env_vars.get("NEW_BASE_PATH")
-
-
             self.q_id = env_vars.get("OLD_QUESTIONNAIRE_ID")
             self.q_ver = env_vars.get("OLD_QUESTIONNAIRE_VERSION")
-            self.q_orig = {}
             self.tenant = env_vars.get("NEW_TENANT")
             self.headers = {
                 "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             }
             self.success_count = 0
             self.skip_count = 0
@@ -35,302 +42,322 @@ class QuestionnaireUploader:
             print(f"Error during questionnaire initialization: {exc}")
             raise QuestionnaireError(f"Failed to initialize questionnaire: {str(exc)}")
 
-    def create_questionnaire_bases(self, id):
+    def _post_questionnaire_base(self, qb_id: str) -> str:
         """Create a questionnaire base and return the questionnaire base ID.
 
-        Creates a new questionnaire base by making a POST request to the API with the
-        questionnaire metadata. If successful, returns the new questionnaire base ID.
-        If the questionnaire already exists (422 status), returns the original ID.
-
         Args:
-            id (str): The ID to use for the new questionnaire base
-
-        Returns:
-            str: The questionnaire base ID (either newly created or existing)
+            qb_id (str): The unique ID to use for the new questionnaire base.
 
         Raises:
-            `QuestionnaireError`: If there is an error creating the questionnaire base.
+            `QuestionnaireError`: If base creation fails for unexpected reasons.
+
+        Returns:
+            str: The associated questionnaire base ID.
+        """
+        print(f"Creating questionnaire base: {qb_id}")
+        attributes = self.q_orig.get("data", {}).get("attributes", {})
+        payload = {
+            "data": {
+                "attributes": {
+                    "id": qb_id,
+                    "name": f"Copy of {attributes.get('name', 'Unnamed')}",
+                    "info": attributes.get("info", {}),
+                    "metadata": attributes.get("metadata", {}),
+                },
+                "type": "resource-type",
+            }
+        }
+        url = f"{self.base_path}/api/v2/{self.tenant}/questionnaire_bases"
+
+        try:
+            response = requests.post(url, json=payload, headers=self.headers)
+            if response.status_code in (200, 201):
+                self.success_count += 1
+                print(f"Successfully created questionnaire base: {qb_id}")
+                return response.json().get("data", {}).get("id", qb_id)
+
+            if response.status_code == 422:
+                self.skip_count += 1
+                print(f"Skipping questionnaire base creation: {qb_id} (Already exists)")
+                return qb_id
+
+            response.raise_for_status()  # If unexpected status, raise immediately.
+
+        except Exception as exc:
+            details = {
+                "questionnaire_id": qb_id,
+                "request_url": getattr(response.request, "url", None),
+                "response_status": getattr(response, "status_code", None),
+                "response_body": getattr(response, "text", None),
+            }
+            raise QuestionnaireError(
+                message=f"Failed to create questionnaire base: {exc}",
+                error_type="QuestionnaireError",
+                status_code=details["response_status"],
+                details=details,
+                source="_create_base",
+                error_line=getattr(sys.exc_info()[2], "tb_lineno", "unknown"),
+            )
+
+    def _prepare_payload(self) -> Dict[str, Any]:
+        """Build a questionnaire-creation API payload from an existing questionnaire.
+
+        This method preserves all questionnaire metadata.
+
+        Raises:
+            `QuestionnaireError`: If payload preparation fails for unexpected reasons.
+
+        Returns:
+            (Dict[str, Any]): The questionnaire structure as a JSON-formatted payload.
         """
         try:
-            print(f"Creating questionnaire base: {id}")
+            attributes = self.q_orig.get("data", {}).get("attributes", {})
+            sections = attributes.get("sections", [])
+            self.current_version = attributes.get("version", 0)
+            print(f"Found {len(sections)} section(s) in the original questionnaire.")
             payload = {
                 "data": {
                     "attributes": {
-                        "id": id,
-                        "name": "Copy of " + self.q_orig.get('data', {}).get('attributes', {}).get('name'),
-                        "info": self.q_orig.get('data', {}).get('attributes', {}).get("info", {}),
-                        "metadata": self.q_orig.get('data', {}).get('attributes', {}).get("metadata", {}),
-                    },
-                    "type": "resource-type"
-                }
-            }
-            response = requests.post(f"{self.base_path}/api/v2/{self.tenant}/questionnaire_bases", json=payload, headers=self.headers)
-            if response.status_code in [200, 201]:
-                self.success_count += 1
-                print(f"✓ Successfully created questionnaire base: {id}")
-                return response.json().get('data', {}).get('id')
-
-            elif response.status_code == 422:
-                self.skip_count += 1
-                print(f"ℹ Skipping questionnaire base creation: {id} - Already exists")
-                return id
-            else:
-               response.raise_for_status()
-
-        except Exception as e:
-            details = {"questionnaire_id": id,
-                            "request_url": response.request.url if response.request else None,
-                            "response_status": response.status_code if response.status_code else None,
-                            "response_body": response.text if response.text else None
-                           }
-            raise QuestionnaireError(
-                    message=f"Failed to create questionnaire base: {details}",
-                    error_type="QuestionnaireError",
-                    status_code=response.status_code,
-                    details=details,
-                    source="create_questionnaire_base",
-                    error_line=sys.exc_info()[2].tb_lineno if sys.exc_info()[2] else None)
-
-    def construct_questionnaire(self) -> Dict:
-        """
-        Construct a new questionnaire by copying sections and questions from an existing questionnaire.
-
-        This function:
-        - Extracts sections and questions from the original questionnaire
-        - Creates a new questionnaire structure with the same metadata and info
-        - Copies each section and its questions while preserving attributes like:
-          - Question text, type, requirements
-          - Select options and alert triggers
-          - Hidden/required flags
-          - Descriptions
-
-        Returns:
-            Dict: The constructed questionnaire dictionary with all sections and questions
-        """
-        try:
-            existing_sections = self.q_orig.get('data', {}).get('attributes', {}).get('sections', [])
-            self.current_version = self.q_orig.get('data', {}).get('attributes', {}).get('version', 0)
-            print(f"Found {len(existing_sections)} sections in existing questionnaire")
-            new_questionnaire = {
-                "data": {
-                    "attributes": {
-                        "info": self.q_orig.get('data', {}).get('attributes', {}).get("info", {}),
-                        "metadata": self.q_orig.get('data', {}).get('attributes', {}).get("metadata", {}),
+                        "info": attributes.get("info", {}),
+                        "metadata": attributes.get("metadata", {}),
                         "draft": False,
+                        "version": self.current_version,
                         "sections": [],
-                        "version": self.current_version
                     }
                 }
             }
-            for section_index, section in enumerate(existing_sections, 1):
-                try:
-                    print(f"\nProcessing section {section_index}/{len(existing_sections)}: {section.get('title', 'Untitled')}")
-
-                    new_section = {
-                        "description": section.get('description'),
-                        "title": section.get('title'),
-                        "questions": []
+            num_sections = len(sections)
+            for i, section in enumerate(sections, 1):
+                title = section.get("title", "Untitled")
+                print(f"Section {i}/{num_sections}: {title}")
+                new_section = {
+                    "description": section.get("description"),
+                    "title": title,
+                    "questions": [],
+                }
+                questions = section.get("questions", [])
+                num_questions = len(questions)
+                for j, question in enumerate(questions, 1):
+                    print(f"  Question {j}/{num_questions}:", end="")
+                    new_question = {
+                        "question": question.get("question"),
+                        "evidence_type": question.get("evidence_type"),
+                        "required": question.get("required"),
+                        "hidden": question.get("hidden"),
+                        "multiple": question.get("multiple"),
+                        "alert_triggers": question.get("alert_triggers"),
+                        "description": question.get("description"),
                     }
+                    if "select_options" in question:
+                        new_question["select_options"] = question["select_options"]
+                        print(f" {len(question['select_options'])} select options")
+                    new_section["questions"].append(new_question)
+                payload["data"]["attributes"]["sections"].append(new_section)
+                print(f"Added section: {title}")
+            print(f"Questionnaire payload ready ({num_sections} sections).")
+            return payload
 
-                    questions = section.get('questions', [])
-                    print(f"Found {len(questions)} questions in section")
-                    for q_index, question in enumerate(questions, 1):
-                        try:
-                            print(f"Processing question {q_index}/{len(questions)}")
-                            new_question = {
-                                "question": question.get('question'),
-                                "evidence_type": question.get('evidence_type'),
-                                "required": question.get('required'),
-                                "hidden": question.get('hidden'),
-                                "multiple": question.get('multiple'),
-                                "alert_triggers": question.get('alert_triggers'),
-                                "description": question.get('description')
-                            }
-                            if question.get('select_options'):
-                                new_question["select_options"] = question['select_options']
-                                print(f"Added {len(question['select_options'])} select options")
-
-                            new_section["questions"].append(new_question)
-
-                        except Exception as e:
-                            print(f"Warning: Failed to process question {q_index}: {str(e)}")
-                            continue
-
-                    new_questionnaire["data"]["attributes"]["sections"].append(new_section)
-                    print(f"✓ Successfully added section: {new_section['title']}")
-
-                except Exception as e:
-                    print(f"Warning: Failed to process section {section_index}: {str(e)}")
-                    continue
-
-            print(f"\nFinal questionnaire contains {len(new_questionnaire)} sections")
-            print("\n=== Questionnaire Construction Completed Successfully ===")
-
-            return new_questionnaire
-
-        except Exception as e:
+        except Exception as exc:
+            details = {"questionnaire_id": id}
             raise QuestionnaireError(
-                message=f"Error constructing questionnaire: {str(e)}",
+                message=f"Error constructing questionnaire: {exc}",
                 error_type="QuestionnaireError",
-                details={
-                    "questionnaire_id": id,
-                    "error_line": sys.exc_info()[2].tb_lineno if sys.exc_info()[2] else None,
-                },
-                source="construct_questionnaire",
-                error_line=sys.exc_info()[2].tb_lineno if sys.exc_info()[2] else None
+                details=details,
+                source="_prepare_payload",
+                error_line=getattr(sys.exc_info()[2], "tb_lineno", "unknown"),
             )
 
-    def post_questionnaire(self, questionnaire_base_id, payload):
-        """
-        Posts a questionnaire version with sections and questions to the API.
+    def _post_questionnaire(
+        self, qb_id: str, payload: Dict[str, Any]
+    ) -> requests.Response:
+        """POST a questionnaire version atop a pre-existing base.
 
         Args:
-            questionnaire_base_id (str): The ID of the base questionnaire to create a version for
-            payload (dict): The questionnaire data containing sections and questions
+            qb_id (str): The ID of the base questionnaire to post a new version to.
+            payload (Dict[str, Any]): The JSON-formatted questionnaire data.
 
         Returns:
-            requests.Response: The API response object containing the created questionnaire data if successful
+            requests.Response: The API response object if successful.
 
         Raises:
-            QuestionnaireError: If the API request fails, with details about the failure
+            `QuestionnaireError`: If the API request fails.
         """
+
+        url = (
+            f"{self.base_path}/api/v2/{self.tenant}"
+            f"/questionnaire_bases/{qb_id}/versions"
+        )
+
         try:
-            response = requests.post( f"{self.base_path}/api/v2/{self.tenant}/questionnaire_bases/{questionnaire_base_id}/versions", json=payload, headers=self.headers)
+            response = requests.post(url, json=payload, headers=self.headers)
+            response.raise_for_status()
             return response
-        except requests.exceptions.RequestException as e:
+
+        except requests.exceptions.RequestException as exc:
             error_details = {
-                "request_url": e.request.url if e.request else None,
-                "response_status": e.response.status_code if e.response else None,
-                "response_body": e.response.text if e.response else None,
-                "questionnaire_base_id": questionnaire_base_id,
-                "operation": "questionnaire_creation"
+                "questionnaire_base_id": qb_id,
+                "request_url": getattr(exc.request, "url", None),
+                "response_status": getattr(exc.response, "status_code", None),
+                "response_body": getattr(exc.response, "text", None),
             }
             raise QuestionnaireError(
-                message="Failed to post questionnaire",
+                message="Failed to POST questionnaire.",
                 error_type="RequestError",
-                status_code=getattr(e.response, 'status_code', None),
+                status_code=getattr(exc.response, "status_code", None),
                 details=error_details,
                 source="post_questionnaire",
-                error_line=sys.exc_info()[2].tb_lineno
+                error_line=getattr(sys.exc_info()[2], "tb_lineno", "unknown"),
             )
 
-    def create_questionnaire(self, questionnaire_base_id, new_questionnaire_payload):
-        """
-        Creates a new version of a questionnaire with sections and questions by making an API request.
+    def _post_questionnaire_w_version_retry(
+        self, qb_id: str, payload: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Create a new questionnaire version with sections and questions.
 
         Args:
-            questionnaire_base_id (str): The ID of the base questionnaire to create a version for
-            new_questionnaire_payload (dict): The questionnaire data containing version, sections and questions
+            qb_id (str): The ID of the base questionnaire to post a new version to.
+            payload (dict): The questionnaire data containing version, sections and
+                questions.
 
         Returns:
-            dict: The API response data containing the created questionnaire version if successful.
-                 Response includes questionnaire ID, version number and other metadata.
+            (Dict[str, Any]): The API response data if creation is successful.
 
         Raises:
-            requests.exceptions.RequestException: If the API request fails due to network or server errors
-            ValueError: If required fields like questionnaire ID or version are missing from the response
-            QuestionnaireError: If questionnaire creation fails due to validation or other API errors
+            `QuestionnaireError`: For validation, API, or network errors.
         """
         try:
-            response = self.post_questionnaire(questionnaire_base_id, new_questionnaire_payload)
+            response = self._post_questionnaire(qb_id, payload)
+
             if response.status_code in [200, 201]:
                 self.success_count += 1
-                print(f"✓ Successfully created newquestionnaire version: {response.json().get('data', {}).get('id')} in {self.tenant} tenant \n")
+                q_id = response.json().get("data", {}).get("id", "unknown")
+                print(f"Created questionnaire version: {q_id} in tenant {self.tenant}")
                 return response.json()
-            elif response.status_code == 422:
-                print(f"current version: {self.current_version}")
+
+            if response.status_code == 422:
+                print(f"Version conflict at version: {self.current_version}")
                 new_version = int(self.current_version) + 1
-                new_questionnaire_payload["data"]["attributes"]["version"] = f"{new_version}"
-                retry = self.post_questionnaire(questionnaire_base_id, new_questionnaire_payload)
+                payload["data"]["attributes"]["version"] = str(new_version)
+                retry = self._post_questionnaire(qb_id, payload)
                 if retry.status_code in [200, 201]:
                     self.success_count += 1
-                    print(f"✓ Successfully created new questionnaire version: {retry.json().get('data', {}).get('id')}\n")
+                    q_id = retry.json().get("data", {}).get("id", "unknown")
+                    print(f"Created questionnaire version: {q_id} after version bump.")
                     return retry.json()
-                else:
-                    self.skip_count += 1
-                    print(f"ℹ No new questionnaire version created: {response.json().get('data', {}).get('id')}\n")
-                    raise QuestionnaireError(
-                        message=f"Failed to create version {new_version} of {questionnaire_base_id}: {response.json()}",
-                        error_type="QuestionnaireError",
-                        status_code=response.status_code,
-                        details=response.json().get('detail'),
-                        source="create_questionnaire",
-                        error_line=sys.exc_info()[2].tb_lineno if sys.exc_info()[2] else None
-                    )
-            else:
-                response.raise_for_status()
-                self.error_count += 1
-                print(f"✗ Failed to create new questionnaire version: {response.status_code}\n")
-                return None
 
-        except requests.exceptions.RequestException as e:
-            error_details = {
-                "request_url": getattr(e.request, 'url', None),
-                "response_status": getattr(e.response, 'status_code', None),
-                "response_body": getattr(e.response, 'text', None),
-                "questionnaire_id": self.q_id,
-                "operation": "questionnaire_creation"
-            }
+                self.skip_count += 1
+                raise QuestionnaireError(
+                    message=(
+                        f"Failed to create version {new_version} of {qb_id}:"
+                        f"{retry.json()}"
+                    ),
+                    error_type="QuestionnaireError",
+                    status_code=retry.status_code,
+                    details=retry.json().get("detail"),
+                    source="create_questionnaire",
+                    error_line=getattr(sys.exc_info()[2], "tb_lineno", "unknown"),
+                )
+            response.raise_for_status()
+            self.error_count += 1
+            print(
+                "Unexpected status during questionnaire creation:"
+                f" {response.status_code}"
+            )
+            return {}
 
+        except requests.exceptions.RequestException as req_exc:
             raise QuestionnaireError(
                 message="Failed to create questionnaire",
                 error_type="RequestError",
-                status_code=getattr(e.response, 'status_code', None),
-                details=error_details,
+                status_code=getattr(req_exc.response, "status_code", None),
+                details={
+                    "questionnaire_id": getattr(self, "q_id", "unknown"),
+                    "request_url": getattr(req_exc.request, "url", None),
+                    "response_status": getattr(req_exc.response, "status_code", None),
+                    "response_body": getattr(req_exc.response, "text", None),
+                    "operation": "questionnaire_creation",
+                },
                 source="create_questionnaire",
-                error_line=sys.exc_info()[2].tb_lineno if sys.exc_info()[2] else None
+                error_line=getattr(sys.exc_info()[2], "tb_lineno", "unknown"),
             )
 
-        except ValueError as e:
+        except ValueError as val_exc:
             raise QuestionnaireError(
-                message="Invalid data for questionnaire creation",
+                message="Invalid questionnaire data",
                 error_type="ValidationError",
                 details={
-                    "questionnaire_id": self.q_id,
-                    "error_message": str(e),
-                    "operation": "questionnaire_creation"
-                }
+                    "questionnaire_id": getattr(self, "q_id", "unknown"),
+                    "error_message": str(val_exc),
+                    "operation": "questionnaire_creation",
+                },
             )
 
-    def map_questionnaire(self, new_questionnaire, old_questionnaire):
-            """
-            Zips each section from the old and new questionnaires into pairs.
-            Each entry contains: {"original": <old_section>, "copy": <new_section>}
-            """
-            try:
-                zipped_sections = []
-                old_sections = old_questionnaire.get('data', {}).get('attributes', {}).get('sections', [])
-                new_sections = new_questionnaire.get('data', {}).get('attributes', {}).get('sections', [])
-                for old_section, new_section in zip(old_sections, new_sections):
-                    zipped_sections.append({
-                        "original section": old_section,
-                        "copy section": new_section
-                    })
-                return zipped_sections
+    def _pair_questionnaire_sections(
+        self, orig_qst: Dict[str, Any], copy_qst: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """Pair each section from the old and copy questionnaires.
 
-            except Exception as e:
-                raise QuestionnaireError(
-                    message=f"Failed to zip questionnaire sections: {str(e)}"
-                )
+        Args:
+            orig_qst (Dict[str, Any]): The original questionnaire.
+            copy_qst (Dict[str, Any]): The copy questionnaire (of the original).
 
-    def run(self):
-        """
-        Runs the questionnaire creation process.
+        Raises:
+            `QuestionnaireError`: If there's a failure during the pairing process.
+
+        Returns:
+            List[Dict[str, Any]]: A list of dicts like:
+                `{"original": <original_section>, "copy": <copy_section>}`
         """
         try:
-            old_questionnaire= QuestionnaireDownloader()
-            self.q_orig = old_questionnaire.get_questionnaire()
-            new_questionnaire_payload = self.construct_questionnaire()
-            questionnaire_base_id = self.create_questionnaire_bases(f"{self.q_id}COPY")
-            new_questionnaire = self.create_questionnaire(questionnaire_base_id, new_questionnaire_payload)
-            return {"old_new_questionnaire_map": self.map_questionnaire(new_questionnaire, self.q_orig), "new_questionnaire_id": new_questionnaire.get('data', {}).get('id', {})}
-        except Exception as e:
+            orig_sections = (
+                orig_qst.get("data", {}).get("attributes", {}).get("sections", [])
+            )
+            copy_sections = (
+                copy_qst.get("data", {}).get("attributes", {}).get("sections", [])
+            )
+            return [
+                {"original": orig, "copy": copy}
+                for orig, copy in zip(orig_sections, copy_sections)
+            ]
+
+        except Exception as exc:
             raise QuestionnaireError(
-                message=f"Questionnaire is not uploaded: {str(e)}",
+                message=f"Failed to map questionnaire sections: {exc}",
+                error_type="MappingError",
+                source="map_questionnaire",
+                error_line=getattr(sys.exc_info()[2], "tb_lineno", "unknown"),
             )
 
+    def upload_copy(self):
+        """With an original questionnaire from one tenant, upload a copy to another."""
+        try:
+            payload = self._prepare_payload()
+            qb_id = self._post_questionnaire_base(f"{self.q_id}_COPY")
+            q_copy = self._post_questionnaire_w_version_retry(qb_id, payload)
+            new_id = q_copy.get("data", {}).get("id", "unknown")
+            print(f"Successfully uploaded questionnaire copy: {new_id}")
+            return {
+                "old_new_questionnaire_map": self._pair_questionnaire_sections(
+                    q_copy, self.q_orig
+                ),
+                "new_questionnaire_id": new_id,
+            }
+        except Exception as exc:
+            raise QuestionnaireError(
+                message=f"Failed to upload questionnaire: {exc}",
+                error_type="RunError",
+                source="run",
+                error_line=getattr(sys.exc_info()[2], "tb_lineno", "unknown"),
+            )
+
+
 def main():
-    questionnaire = QuestionnaireUploader()
-    questionnaire.run()
+    q_orig = QuestionnaireDownloader().get_questionnaire()
+    q_uploader = QuestionnaireUploader(q_orig)
+    results = q_uploader.upload_copy()
+    export_to_json(results, "q-uploader-results.json")
+    print(1)
+
+
 if __name__ == "__main__":
     main()

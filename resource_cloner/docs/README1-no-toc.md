@@ -4,6 +4,9 @@
 A Python-based tool for managing questionnaires between different tenants in the Credo AI system.
 Easily download, upload, and transfer questionnaires along with their associated triggers and actions.
 
+
+- Note that if QST_ID in SRC is version 9, then gets copied into DEST as QST_ID_COPY, it will be version 1, meaning the questionnaire ID returned after questionnaire creation will be QST_ID_COPY+1 in the DEST tenant.
+
 ---
 <!-- omit in toc -->
 ## 🗂️ Table of Contents
