@@ -1,50 +1,29 @@
 import sys
 from pathlib import Path
-from typing import Any, Dict, TypedDict
+from typing import Any, Dict
 
 import requests
 from dotenv import dotenv_values, load_dotenv
 from download_custom_fields import CustomFieldsDownloader
 from get_bearer_token import TokenManager
 from q_manager_utils import APIError, CustomFieldsError
+from utils import JSONData, export_to_json
 
 load_dotenv(dotenv_path=".env", override=True)
-
-
-class CustomFieldAttributes(TypedDict):
-    """Type definition for custom field attributes.
-
-    Represents the structure of attributes in a custom field, including
-    field type, metadata, configuration options, and targeting.
-    """
-
-    element_type: str
-    metadata: Dict[str, Any]
-    multiple: bool
-    name: str
-    options: Dict[str, Any]
-    target: str
-    type: str
-
-
-class FormattedCustomField(TypedDict):
-    """Type definition for API-ready custom field payloads."""
-
-    data: Dict[str, Any]
 
 
 class CustomFieldsUploader:
     """Handle uploading custom fields to add metadata to questionnaire elements."""
 
-    REQUIRED_ATTRIBUTES = [
-        "element_type",
-        "metadata",
-        "multiple",
-        "name",
-        "options",
-        "target",
-        "type",
-    ]
+    REQUIRED_ATTRIBUTES = {
+        "element_type": str,
+        "metadata": Dict[str, Any],
+        "multiple": bool,
+        "name": str,
+        "options": Dict[str, Any],
+        "target": str,
+        "type": str,
+    }
 
     def __init__(self, custom_fields: Dict[str, Any]) -> None:
         """Initialize the uploader with credentials and tracking counters.
@@ -56,11 +35,11 @@ class CustomFieldsUploader:
         self.custom_fields = custom_fields
 
         try:
-            new_token = TokenManager(version="new").get_token()
+            token = TokenManager(version="new").get_token()
             env_vars = dotenv_values(Path.cwd() / ".env")
-            self.base_path = env_vars.get("OLD_BASE_PATH")
-            self.tenant_new = env_vars.get("NEW_TENANT")
-            self.headers_new = {"Authorization": f"Bearer {new_token}"}
+            self.base_path = env_vars.get("NEW_BASE_PATH")
+            self.tenant = env_vars.get("NEW_TENANT")
+            self.headers = {"Authorization": f"Bearer {token}"}
             self.success_count = 0
             self.skip_count = 0
             self.error_count = 0
@@ -69,22 +48,17 @@ class CustomFieldsUploader:
             print(error_msg)
             raise CustomFieldsError(error_msg)
 
-    def _format_custom_field(
-        self, custom_field: Dict[str, Any]
-    ) -> FormattedCustomField:
-        """Transform source custom field into target API format.
-
-        Restructure the custom field data to match API requirements while preserving
-        essential attributes.
+    def _prepare_custom_field_payload(self, custom_field: Dict[str, Any]) -> JSONData:
+        """Restructure custom field data into formatted JSON.
 
         Args:
-            custom_field (dict): Source custom field object.
+            custom_field (Dict[str, Any]): Source custom field object.
 
         Returns:
-            dict: API-ready payload with proper structure.
+            JSONData: API-ready payload with proper structure.
 
         Raises:
-            CustomFieldsError: If field contains missing or invalid attributes.
+            `CustomFieldsError`: If field contains missing or invalid attributes.
         """
         try:
             # Extract attributes from source, validating they exist.
@@ -110,18 +84,18 @@ class CustomFieldsUploader:
             print(error_msg)
             raise CustomFieldsError(error_msg)
 
-    def _upload_single_custom_field(self, custom_field: FormattedCustomField) -> bool:
+    def _post_single_custom_field(self, custom_field: JSONData) -> bool:
         """Upload a custom field to the target tenant.
 
         Args:
-            custom_field (dict): The formatted custom field payload to upload.
+            custom_field (JSONData): The formatted custom field payload to upload.
 
         Returns:
             bool: True if created, False if skipped (already exists).
 
         Raises:
-            CustomFieldsError: For general errors during upload.
-            APIError: For API-specific errors with status codes.
+            `CustomFieldsError`: For general errors during upload.
+            `APIError`: For API-specific errors with status codes.
         """
         try:
             field_name = (
@@ -130,19 +104,16 @@ class CustomFieldsUploader:
                 .get("name", "unknown")
             )
             print(f"Creating custom field: {field_name}")
-            response = requests.post(
-                f"{self.base_path}/api/v2/{self.tenant_new}/custom_fields",
-                headers=self.headers_new,
-                json=custom_field,
-            )
+            url = f"{self.base_path}/api/v2/{self.tenant}/custom_fields"
+            response = requests.post(url, headers=self.headers, json=custom_field)
 
             if response.status_code in (200, 201):
-                print(f"✓ Successfully uploaded custom field: {field_name}\n")
+                print(f"Successfully uploaded custom field: {field_name}")
                 self.success_count += 1
                 return True
 
             if response.status_code == 422:
-                print(f"↷ Custom field already exists: {field_name} Skipping...\n")
+                print(f"Custom field already exists (upload skipped): {field_name}")
                 self.skip_count += 1
                 return False
 
@@ -157,44 +128,29 @@ class CustomFieldsUploader:
     def upload_custom_fields(self) -> Dict[str, int]:
         """Upload all custom fields to the target tenant.
 
-        Process each custom field in the collection, format it, and upload it to the target tenant.
-
         Returns:
-            (Dict[str, int]): Statistics about the upload operation
-                {
-                    "success": count of successfully uploaded fields,
-                    "skipped": count of fields that already existed,
-                    "error": count of fields that failed to upload
-                }
+            (Dict[str, int]): Statistics about the upload operation.
 
         Raises:
-            CustomFieldsError: If there's an error during the upload process
+            `CustomFieldsError`: If there's an error during the upload process.
         """
+        # Reset batch upload statistics on each method call.
         self.success_count = 0
         self.skip_count = 0
         self.error_count = 0
 
-        if not hasattr(self, "custom_fields") or not self.custom_fields:
-            raise CustomFieldsError(
-                message="No custom fields to upload. Download custom fields first.",
-                error_type="CustomFieldsUploadError",
-                source="upload_custom_fields",
-            )
-
         try:
-            print(f"Creating custom fields on: {self.tenant_new}")
+            print(f"Creating custom fields on: {self.tenant}")
             fields = self.custom_fields.get("data", [])
-            total = len(fields)
-
-            print(f"Processing {total} custom fields...")
+            num_fields = len(fields)
             for i, custom_field in enumerate(fields, start=1):
                 try:
-                    print(f"Field {i}/{total}: Processing...")
-                    formatted_field = self._format_custom_field(custom_field)
-                    self._upload_single_custom_field(formatted_field)
+                    print(f"Processing custom field: {i}/{num_fields}")
+                    formatted_field = self._prepare_custom_field_payload(custom_field)
+                    self._post_single_custom_field(formatted_field)
                 except Exception as field_exc:
                     # Continue with next field instead of failing the entire process.
-                    print(f"Error with field {i}/{total}: {field_exc}")
+                    print(f"Error during custom field upload: {field_exc}")
                     self.error_count += 1
 
             return {
@@ -214,8 +170,10 @@ class CustomFieldsUploader:
 
 
 def main():
+    """Download custom fields from the source tenant, then upload them to the target."""
     custom_field_downloader = CustomFieldsDownloader()
     custom_fields = custom_field_downloader.get_custom_fields()
+    export_to_json(custom_fields, "custom-fields.json")
     custom_fields_uploader = CustomFieldsUploader(custom_fields)
     results = custom_fields_uploader.upload_custom_fields()
     print(results)

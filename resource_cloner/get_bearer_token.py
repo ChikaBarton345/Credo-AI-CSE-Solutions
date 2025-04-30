@@ -80,9 +80,13 @@ class TokenManager:
             print(f"Failed to write to .env file: {err}")
             return False
 
-
-if __name__ == "__main__":
+def main():
+    """Get a token for the source tenant, and one for the target tenant."""
     for ver in ["old", "new"]:
         tm = TokenManager(ver)
         tm.get_token()
     print(1)
+
+
+if __name__ == "__main__":
+    main()

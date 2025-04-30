@@ -4,6 +4,7 @@ logs
 .vscode
 .env
 cstool
+credo_ai_api_demo.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

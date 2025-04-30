@@ -99,7 +99,7 @@ class QuestionnaireUploader:
                 error_line=getattr(sys.exc_info()[2], "tb_lineno", "unknown"),
             )
 
-    def _prepare_payload(self) -> Dict[str, Any]:
+    def _prepare_questionnaire_payload(self) -> Dict[str, Any]:
         """Build a questionnaire-creation API payload from an existing questionnaire.
 
         This method preserves all questionnaire metadata.
@@ -328,10 +328,10 @@ class QuestionnaireUploader:
                 error_line=getattr(sys.exc_info()[2], "tb_lineno", "unknown"),
             )
 
-    def upload_copy(self):
+    def upload_questionnaire_copy(self) -> Dict[str, Any]:
         """With an original questionnaire from one tenant, upload a copy to another."""
         try:
-            payload = self._prepare_payload()
+            payload = self._prepare_questionnaire_payload()
             qb_id = self._post_questionnaire_base(f"{self.q_id}_COPY")
             q_copy = self._post_questionnaire_w_version_retry(qb_id, payload)
             new_id = q_copy.get("data", {}).get("id", "unknown")
@@ -352,9 +352,10 @@ class QuestionnaireUploader:
 
 
 def main():
+    """Download a questionnaire from the source tenant, then upload it to the target."""
     q_orig = QuestionnaireDownloader().get_questionnaire()
     q_uploader = QuestionnaireUploader(q_orig)
-    results = q_uploader.upload_copy()
+    results = q_uploader.upload_questionnaire_copy()
     export_to_json(results, "q-uploader-results.json")
     print(1)
 

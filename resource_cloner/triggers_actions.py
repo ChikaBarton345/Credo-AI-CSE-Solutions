@@ -3,8 +3,8 @@ import json
 from typing import Dict, List, Optional, Union
 import os
 import sys
-from download_questionnaire import QuestionnaireDownloader as Questionnaire_download
-from upload_questionnaire import QuestionnaireUploader as Questionnaire_upload
+from download_questionnaire import QuestionnaireDownloader
+from upload_questionnaire import QuestionnaireUploader
 from get_bearer_token import TokenManager
 from q_manager_utils import TriggersActionsError, APIError
 from dotenv import load_dotenv
@@ -544,11 +544,10 @@ class TriggersAndActions:
         print(f"Sucessfully created {len(created_actions)} actions")
 
 def main():
-    old_questionnaire= Questionnaire_download()
-    original_questionnaire = old_questionnaire.get_questionnaire()
-    questionnaire_upload = Questionnaire_upload()
-    questionnaires = questionnaire_upload.download_and_upload_copy()
-    triggers_and_actions = TriggersAndActions(original_questionnaire, questionnaires)
+    q_orig = QuestionnaireDownloader().get_questionnaire()
+    questionnaire_upload = QuestionnaireUploader()
+    questionnaires = questionnaire_upload.upload_questionnaire_copy()
+    triggers_and_actions = TriggersAndActions(q_orig, questionnaires)
     triggers_and_actions.run()
 if __name__ == "__main__":
     sys.exit(main())

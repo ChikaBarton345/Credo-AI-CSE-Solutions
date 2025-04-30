@@ -5,6 +5,7 @@ import requests
 from dotenv import dotenv_values, load_dotenv
 from get_bearer_token import TokenManager
 from q_manager_utils import APIError, CustomFieldsError
+from utils import export_to_json
 
 load_dotenv(dotenv_path=".env", override=True)
 
@@ -57,7 +58,7 @@ class CustomFieldsDownloader:
 
             data = response.json()
             count = len(data.get("data", []))
-            print(f"Success. Number of custom fields retrieved: {count}")
+            print(f"Number of custom fields retrieved: {count}")
             return data
 
         except requests.HTTPError as http_err:
@@ -71,8 +72,9 @@ class CustomFieldsDownloader:
 
 
 def main():
+    """Retrieve all custom fields from the source tenant."""
     custom_fields = CustomFieldsDownloader().get_custom_fields()
-    print(custom_fields)
+    export_to_json(custom_fields, "src-custom-fields.json")
     print(1)
 
 
