@@ -54,7 +54,7 @@ class QuestionnaireUploader:
         Returns:
             str: The associated questionnaire base ID.
         """
-        print(f"Creating questionnaire base: {qb_id}")
+        print(f"Creating questionnaire base: id={qb_id}")
         attributes = self.q_orig.get("data", {}).get("attributes", {})
         payload = {
             "data": {
@@ -78,7 +78,9 @@ class QuestionnaireUploader:
 
             if response.status_code == 422:
                 self.skip_count += 1
-                print(f"Skipping questionnaire base creation: {qb_id} (Already exists)")
+                print(
+                    f"Skipping questionnaire base creation (already exists): id={qb_id}"
+                )
                 return qb_id
 
             response.raise_for_status()  # If unexpected status, raise immediately.
@@ -231,7 +233,7 @@ class QuestionnaireUploader:
             if response.status_code in [200, 201]:
                 self.success_count += 1
                 q_id = response.json().get("data", {}).get("id", "unknown")
-                print(f"Created questionnaire version: {q_id} in tenant {self.tenant}")
+                print(f"Created questionnaire version: id={q_id}, tenant={self.tenant}")
                 return response.json()
 
             if response.status_code == 422:
@@ -242,7 +244,9 @@ class QuestionnaireUploader:
                 if retry.status_code in [200, 201]:
                     self.success_count += 1
                     q_id = retry.json().get("data", {}).get("id", "unknown")
-                    print(f"Created questionnaire version: {q_id} after version bump.")
+                    print(
+                        f"Created questionnaire version: id={q_id} after version bump."
+                    )
                     return retry.json()
 
                 self.skip_count += 1
@@ -295,7 +299,7 @@ class QuestionnaireUploader:
     def _pair_questionnaire_sections(
         self, orig_qst: Dict[str, Any], copy_qst: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-        """Pair each section from the old and copy questionnaires.
+        """Pair each section from the original and copy questionnaires.
 
         Args:
             orig_qst (Dict[str, Any]): The original questionnaire.
@@ -305,7 +309,7 @@ class QuestionnaireUploader:
             `QuestionnaireError`: If there's a failure during the pairing process.
 
         Returns:
-            List[Dict[str, Any]]: A list of dicts like:
+            (List[Dict[str, Any]]): A list of dicts like:
                 `{"original": <original_section>, "copy": <copy_section>}`
         """
         try:
@@ -329,19 +333,29 @@ class QuestionnaireUploader:
             )
 
     def upload_questionnaire_copy(self) -> Dict[str, Any]:
-        """With an original questionnaire from one tenant, upload a copy to another."""
+        """With an original questionnaire from one tenant, upload a copy to another.
+
+        Raises:
+            `QuestionnaireError`: If there is an error during upload.
+
+        Returns:
+            (Dict[str, Any]): Returns an `old_new_questionnaire_map` to confirm data
+                transfer, as well as the questionnaire ID of the newly-created
+                questionnaire on the target tenant.
+        """
         try:
             payload = self._prepare_questionnaire_payload()
             qb_id = self._post_questionnaire_base(f"{self.q_id}_COPY")
             q_copy = self._post_questionnaire_w_version_retry(qb_id, payload)
             new_id = q_copy.get("data", {}).get("id", "unknown")
-            print(f"Successfully uploaded questionnaire copy: {new_id}")
-            return {
+            print(f"Successfully uploaded questionnaire copy: id={new_id}")
+            q_copy_result = {
                 "old_new_questionnaire_map": self._pair_questionnaire_sections(
                     q_copy, self.q_orig
                 ),
                 "new_questionnaire_id": new_id,
             }
+            return q_copy_result
         except Exception as exc:
             raise QuestionnaireError(
                 message=f"Failed to upload questionnaire: {exc}",
@@ -355,8 +369,8 @@ def main():
     """Download a questionnaire from the source tenant, then upload it to the target."""
     q_orig = QuestionnaireDownloader().get_questionnaire()
     q_uploader = QuestionnaireUploader(q_orig)
-    results = q_uploader.upload_questionnaire_copy()
-    export_to_json(results, "q-uploader-results.json")
+    q_copy_result = q_uploader.upload_questionnaire_copy()
+    export_to_json(q_copy_result, "questionnaire-copy-result.json")
     print(1)
 
 

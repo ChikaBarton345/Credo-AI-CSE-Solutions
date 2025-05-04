@@ -5,6 +5,7 @@ logs
 .env
 cstool
 credo_ai_api_demo.ipynb
+output
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -86,9 +86,12 @@ def main():
     """Given its ID and version, download a questionnaire from the source tenant."""
     q_downloader = QuestionnaireDownloader()
     q_list = q_downloader._list_questionnaires()
-    export_to_json(q_list, "all_src_questionnaires.json")
-    questionnaire = q_downloader.get_questionnaire()
-    export_to_json(questionnaire, "questionnaire.json")
+    export_to_json(q_list, "src-all-questionnaires.json")
+    qstnr = q_downloader.get_questionnaire()
+    q_attrs = qstnr.get("data", {}).get("attributes", {})
+    q_id = q_attrs.get("key", "unknown")
+    q_ver = q_attrs.get("version", "unknown")
+    export_to_json(qstnr, f"src-questionnaire-id-{q_id}-ver-{q_ver}.json")
     print(1)
 
 

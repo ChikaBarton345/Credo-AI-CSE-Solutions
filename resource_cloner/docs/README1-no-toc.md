@@ -136,3 +136,17 @@ For support, contact **support@credo.ai**.
 ## 8. References 📚
 
 - Credo AI API documentation
+
+
+## 9. Appendix
+
+To test between two tenants, consider `credoaics` on prod, and the `credoai` on the qa tenant.
+Go to `app.credo.ai` (prod)
+Enter `credoaics` as the organization name
+Select "Continue with Credo AI SSO"
+We should be logged in.
+
+Next, Go to `app.credo-qa.com` (qa)
+Enter `credoai` as the organization name
+Select "Continue with Credo AI SSO"
+We should be logged in.

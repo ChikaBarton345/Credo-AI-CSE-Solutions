@@ -153,11 +153,12 @@ class CustomFieldsUploader:
                     print(f"Error during custom field upload: {field_exc}")
                     self.error_count += 1
 
-            return {
+            cf_upload_stats = {
                 "success": self.success_count,
                 "skipped": self.skip_count,
                 "error": self.error_count,
             }
+            return cf_upload_stats
 
         except Exception as exc:
             print(f"Error during custom fields upload: {exc}")
@@ -171,12 +172,12 @@ class CustomFieldsUploader:
 
 def main():
     """Download custom fields from the source tenant, then upload them to the target."""
-    custom_field_downloader = CustomFieldsDownloader()
-    custom_fields = custom_field_downloader.get_custom_fields()
-    export_to_json(custom_fields, "custom-fields.json")
-    custom_fields_uploader = CustomFieldsUploader(custom_fields)
-    results = custom_fields_uploader.upload_custom_fields()
-    print(results)
+    custom_fields = CustomFieldsDownloader().get_custom_fields()
+    export_to_json(custom_fields, "src-custom-fields.json")
+    cf_upload_stats = CustomFieldsUploader(custom_fields).upload_custom_fields()
+    export_to_json(cf_upload_stats, "custom-field-upload-stats.json")
+    print(cf_upload_stats)
+    print(1)
 
 
 if __name__ == "__main__":

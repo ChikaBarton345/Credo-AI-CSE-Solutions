@@ -1,6 +1,6 @@
 
 class BaseError(Exception):
-    
+
 
     """Generic base exception class for error handling."""
 
@@ -72,28 +72,28 @@ class BaseError(Exception):
 class CustomFieldsError(BaseError):
     """Raised when custom fields creation fails."""
     def __init__(self, message: str, **kwargs):
-        kwargs.setdefault('error_type', 'CustomFieldsError')  
+        kwargs.setdefault('error_type', 'CustomFieldsError')
         super().__init__(message, **kwargs)
 
 class TriggersActionsError(BaseError):
     """Raised when triggers and actions creation fails."""
     def __init__(self, message: str, **kwargs):
-        kwargs.setdefault('error_type', 'TriggersActionsError')  
+        kwargs.setdefault('error_type', 'TriggersActionsError')
         super().__init__(message, **kwargs)
 
 class ValueError(BaseError):
     """Raised when a value is not found ."""
     def __init__(self, message: str, **kwargs):
-        kwargs.setdefault('error_type', 'ValueError')  
+        kwargs.setdefault('error_type', 'ValueError')
         super().__init__(message, **kwargs)
 
 class APIError(BaseError):
     """Raised when API requests fail"""
     def __init__(self, message: str, **kwargs):
-        kwargs.setdefault('error_type', 'APIError')  
+        kwargs.setdefault('error_type', 'APIError')
         super().__init__(message, **kwargs)
 
 class QuestionnaireError(BaseError):
      def __init__(self, message: str, **kwargs):
-        kwargs.setdefault('error_type', 'QuestionnaireError')  
+        kwargs.setdefault('error_type', 'QuestionnaireError')
         super().__init__(message, **kwargs)
