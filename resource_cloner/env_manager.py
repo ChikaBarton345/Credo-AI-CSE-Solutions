@@ -1,21 +1,32 @@
 from pathlib import Path
 from typing import Literal, Optional, Union
+from dataclasses import dataclass
 
 import requests
 from dotenv import dotenv_values, load_dotenv, set_key
-from utils import setup_logger
+from utils import PathLike, setup_logger
 
 logger = setup_logger(Path(__file__).stem)
 
 load_dotenv(dotenv_path=".env", override=True)
 
 
+@dataclass
+class TenantConfig:
+    api_token: Optional[str]
+    jwt_token: Optional[str]
+    tenant: Optional[str]
+    base_path: Optional[str]
+    qid: Optional[str] = None
+    qver: Optional[str] = None
+
+
 class EnvManager:
-    def __init__(self, env_path: Union[str, Path] = Path(".env")) -> None:
+    def __init__(self, env_path: PathLike = Path(".env")) -> None:
         """Initialize EnvManager with variables loaded from a .env file.
 
         Args:
-            env_path (Union[str, Path], optional): Path to the ".env" file. Defaults to
+            env_path (PathLike, optional): Path to the ".env" file. Defaults to
                 Path(".env") (i.e., the .env file in the current working directory).
         """
         self.env_path = Path(env_path)
@@ -23,29 +34,29 @@ class EnvManager:
 
     def load_env_vars(self) -> None:
         """Load environment variables and group them by source and dest tenants."""
-        self.env_vars = dotenv_values(self.env_path) if self.env_path.exists() else {}
-        self.src_vars = {
-            "api_token": self.env_vars.get("SRC_API_TOKEN"),
-            "jwt_token": self.env_vars.get("SRC_JWT_TOKEN"),
-            "tenant": self.env_vars.get("SRC_TENANT"),
-            "base_path": self.env_vars.get("SRC_BASE_PATH"),
-            "qid": self.env_vars.get("SRC_QUESTIONNAIRE_ID"),
-            "qver": self.env_vars.get("SRC_QUESTIONNAIRE_VERSION"),
-        }
-        self.dest_vars = {
-            "api_token": self.env_vars.get("DEST_API_TOKEN"),
-            "jwt_token": self.env_vars.get("DEST_JWT_TOKEN"),
-            "tenant": self.env_vars.get("DEST_TENANT"),
-            "base_path": self.env_vars.get("DEST_BASE_PATH"),
-        }
+        env = dotenv_values(self.env_path) if self.env_path.exists() else {}
+        self.src = TenantConfig(
+            api_token=env.get("SRC_API_TOKEN"),
+            jwt_token=env.get("SRC_JWT_TOKEN"),
+            tenant=env.get("SRC_TENANT"),
+            base_path=env.get("SRC_BASE_PATH"),
+            qid=env.get("SRC_QUESTIONNAIRE_ID"),
+            qver=env.get("SRC_QUESTIONNAIRE_VERSION"),
+        )
+        self.dest = TenantConfig(
+            api_token=env.get("DEST_API_TOKEN"),
+            jwt_token=env.get("DEST_JWT_TOKEN"),
+            tenant=env.get("DEST_TENANT"),
+            base_path=env.get("DEST_BASE_PATH"),
+        )
 
     def __repr__(self) -> str:
         """Unambiguous string representation for debugging."""
         return (
             f"{self.__class__.__name__}("
             f"env_path='{self.env_path}', "
-            f"src_tenant='{self.src_vars.get('tenant', '?')}', "
-            f"dest_tenant='{self.dest_vars.get('tenant', '?')}')"
+            f"src_tenant='{self.src.get('tenant', '?')}', "
+            f"dest_tenant='{self.dest.get('tenant', '?')}')"
         )
 
     def get_token(
@@ -68,10 +79,10 @@ class EnvManager:
             `requests.exceptions.RequestException`: For request-related errors
             `ValueError`: If JSON parsing of the response fails.
         """
-        tenant_vars = self.src_vars if src_or_dest == "src" else self.dest_vars
-        url = f"{tenant_vars['base_path']}/auth/exchange"
-        data = {"api_token": tenant_vars["api_token"], "tenant": tenant_vars["tenant"]}
-        tenant = tenant_vars["tenant"]
+        srcdest = self.src if src_or_dest == "src" else self.dest
+        url = f"{srcdest.base_path}/auth/exchange"
+        data = {"api_token": srcdest.api_token, "tenant": srcdest.tenant}
+        tenant = srcdest.tenant
         try:
             logger.debug(f"Retrieving JWT token for: {tenant}")
             response = requests.post(url, json=data)

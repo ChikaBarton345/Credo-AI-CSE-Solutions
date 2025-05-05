@@ -3,9 +3,6 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Union
 
-logger = logging.getLogger(__name__)
-
-
 PathLike = Union[str, Path]
 
 # Define a recursive type for JSON-serializable data.
@@ -15,6 +12,35 @@ JSONValue = Union[
 JSONDict = Dict[str, JSONValue]
 JSONList = List[JSONValue]
 JSONData = Union[JSONDict, JSONList]
+
+
+def mkdir_safe(path: PathLike, verbose: bool = False) -> None:
+    """Ensure the directory for a given file or folder path exists.
+
+    If `path` points to a file, its parent directory will be created, but if `path`
+    points to a directory, it will be created directly.
+
+    Args:
+        path (PathLike): File or directory path to ensure exists.
+        verbose (bool): Whether to print whenever a log folder is safely created.
+
+    Raises:
+        `OSError`: If the directory cannot be created.
+        `PermissionError`: If the user cannot modify the directory structure.
+    """
+    path = Path(path)
+    # If there's a suffix (e.g., `.log`), treat it as a file path.
+    target = path.parent if path.suffix else path
+    try:
+        if verbose:
+            print(f"Creating directory (exists ok): {target}")
+        target.mkdir(parents=True, exist_ok=True)
+    except PermissionError as exc:
+        print(f"Permission denied while creating directory: {target}\n{exc}")
+        raise
+    except OSError as exc:
+        print(f"Failed to create directory: {target}\n{exc}")
+        raise
 
 
 def setup_logger(
@@ -74,31 +100,7 @@ def setup_logger(
     return logger
 
 
-def mkdir_safe(path: PathLike) -> None:
-    """Ensure the directory for a given file or folder path exists.
-
-    If `path` points to a file, its parent directory will be created, but if `path`
-    points to a directory, it will be created directly.
-
-    Args:
-        path (PathLike): File or directory path to ensure exists.
-
-    Raises:
-        `OSError`: If the directory cannot be created.
-        `PermissionError`: If the user cannot modify the directory structure.
-    """
-    path = Path(path)
-    # If there's a suffix (e.g., `.log`), treat it as a file path.
-    target = path.parent if path.suffix else path
-    try:
-        print(f"Creating directory: {target}")
-        target.mkdir(parents=True, exist_ok=True)
-    except PermissionError as exc:
-        print(f"Permission denied while creating directory: {exc}")
-        raise
-    except OSError as exc:
-        print(f"Failed to create directory: {exc}")
-        raise
+LOGGER = setup_logger(Path(__file__).stem)
 
 
 def export_to_json(
@@ -119,14 +121,14 @@ def export_to_json(
     mkdir_safe(outpath)
     filepath = outpath / filename
     filepath = filepath.with_suffix(".json")
-    print(f"Attempting JSON export: {filepath}")
+    LOGGER.info(f"Attempting JSON export: {filepath.as_posix()}")
     try:
         filepath.write_text(
             json.dumps(data, indent=indent, ensure_ascii=False),
             encoding="utf-8",
         )
-        print(f"Exported to JSON: {filepath}")
+        LOGGER.info(f"Exported to JSON: {filepath.as_posix()}")
     except (TypeError, ValueError) as exc:
-        print(f"Export failed, JSON serialization error: {exc}")
+        LOGGER.error(f"Export failed, JSON serialization error: {exc}")
     except OSError as exc:
-        print(f"Export filed, file write error: {exc}")
+        LOGGER.error(f"Export filed, file write error: {exc}")
