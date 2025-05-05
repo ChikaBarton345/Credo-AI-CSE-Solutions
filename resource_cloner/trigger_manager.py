@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
+from action_manager import ActionManager
 from env_manager import EnvManager
+from questionnaire_manager import QuestionnaireManager
 from utils import JSONData, JSONList, setup_logger
 
 LOGGER = setup_logger(Path(__file__).stem)
@@ -15,7 +19,9 @@ class TriggerManager:
         self.dest_headers = {"Authorization": f"Bearer {self.em.dest.jwt_token}"}
         self.q_copy_result = q_copy_result
         self.src_dest_qnaire_map = q_copy_result.get("old_new_questionnaire_map", {})
-        self.q_copy_id = q_copy_result.get("new_questionnaire_id", {})
+        self.q_copy_id = q_copy_result.get("new_questionnaire_id")
+
+        self.actions = ActionManager(self)
 
     def get_triggers(self) -> JSONData:
         """Fetch all triggers from the source tenant.
@@ -35,7 +41,7 @@ class TriggerManager:
             triggers = json_response.get("data", [])
             num_triggers = len(triggers)
             LOGGER.info(f"Triggers retrieved: {num_triggers}")
-            return json_response
+            return triggers
         except requests.RequestException:
             LOGGER.exception("Failed to retrieve triggers.")
             raise
@@ -186,21 +192,21 @@ class TriggerManager:
         """Create triggers in the destination tenant based on source triggers.
 
         For each trigger from the source tenant:
-            1. Find the matching copied question/section.
-            2. Format a trigger payload using updated IDs.
-            3. Create the trigger in the destination tenant.
-            4. Record a mapping of old to new trigger IDs.
+          1. Find the matching copied question/section.
+          2. Format a trigger payload using updated IDs.
+          3. Create the trigger in the destination tenant.
+          4. Record a mapping of old to new trigger IDs.
 
         Args:
             triggers (JSONList): List of trigger objects from the source tenant.
 
         Returns:
-            List[Dict[str, str]]: List of mappings like:
+            (List[Dict[str, str]]): List of mappings like:
                 {"old_trigger_id": "new_trigger_id"}
         """
 
         section_map = self.src_dest_qnaire_map
-        self.all_old_triggers = []
+        all_old_triggers = []
         trigger_mapping = []
 
         LOGGER.info(
@@ -217,7 +223,7 @@ class TriggerManager:
                 )
                 continue
 
-            self.all_old_triggers.append(old_trigger_id)
+            all_old_triggers.append(old_trigger_id)
             payload = self._prep_trigger_payload(trigger, matching_section)
             new_trigger_id = self.create_trigger(payload)
 
@@ -229,4 +235,27 @@ class TriggerManager:
             )
 
         LOGGER.info(f"Created {len(trigger_mapping)} triggers.")
-        return trigger_mapping
+        return trigger_mapping, all_old_triggers
+
+
+def main():
+    """Retrieve all custom fields from the source tenant."""
+    em = EnvManager()
+    qm = QuestionnaireManager(em)
+    qnaire = qm.get_qnaire()
+    q_copy_result = qm.upload_qnaire_copy(qnaire)
+    tm = TriggerManager(em, q_copy_result)
+    triggers = tm.get_triggers()
+    trigger_mapping, all_old_triggers = tm.create_triggers(triggers)
+    actions = tm.actions.get_actions()
+    created_actions = tm.actions.create_actions(
+        actions, trigger_mapping, all_old_triggers
+    )
+    LOGGER.info(
+        f"Migration complete: {len(trigger_mapping)} triggers and"
+        f" {len(created_actions)} actions created."
+    )
+
+
+if __name__ == "__main__":
+    main()
