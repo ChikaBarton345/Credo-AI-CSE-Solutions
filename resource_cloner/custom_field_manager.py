@@ -21,7 +21,7 @@ class CustomFieldDefinition:
     type: str
 
 
-class CustomFieldsManager:
+class CustomFieldManager:
     """GET custom fields from a source tenant or POST to a dest tenant."""
 
     def __init__(self, env_manager: EnvManager) -> None:
@@ -184,7 +184,7 @@ class CustomFieldsManager:
 def main():
     """Upload custom fields from old tenant to new tenant."""
     em = EnvManager()
-    cfm = CustomFieldsManager(em)
+    cfm = CustomFieldManager(em)
     custom_fields = cfm.get_custom_fields()
     export_to_json(custom_fields, "src-custom-fields.json")
     upload_stats = cfm.upload_custom_fields(custom_fields)

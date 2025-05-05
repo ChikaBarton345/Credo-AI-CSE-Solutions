@@ -1,13 +1,13 @@
 # Custom
-data
-logs
+data/
+logs/
 .vscode
 .env
 .env.old
-cstool
+cstool/
 credo_ai_api_demo.ipynb
-output
-old_refactor
+output/
+old_refactor/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

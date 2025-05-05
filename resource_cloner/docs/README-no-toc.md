@@ -1,42 +1,41 @@
 <!-- omit in toc -->
-# Questionnaire Cloner
+# Resource Cloner
 
 A Python-based tool for managing questionnaires between different tenants in the Credo AI system.
 Easily download, upload, and transfer questionnaires along with their associated triggers and actions.
 
-
-- Note that if QST_ID in SRC is version 9, then gets copied into DEST as QST_ID_COPY, it will be version 1, meaning the questionnaire ID returned after questionnaire creation will be QST_ID_COPY+1 in the DEST tenant.
-
 ---
+
 <!-- omit in toc -->
 ## 🗂️ Table of Contents
+
 [TOC]
 
 ---
 
 ## 1. Features ✨
 
-- ***Download*** questionnaires from a source tenant
-- ***Upload*** questionnaires to a target tenant
+- ***Download*** questionnaires from a source tenant.
+- ***Upload*** questionnaires to a target tenant.
 - ***Copy*** questionnaire structure, including:
   - Sections
   - Questions
   - Evidence types
   - Select options
   - Alert triggers
-- ***Manage triggers and actions***:
-  - Copy triggers between tenants
-  - Map and maintain trigger relationships
-  - Transfer associated actions
-- ***Environment-based configuration***
-- ***JWT token management***
-- ***Error handling and logging***
+- ***Manage triggers and actions***. You can:
+  - Copy triggers between tenants.
+  - Map and maintain trigger relationships.
+  - Transfer associated actions.
+- ***Secure*** credentials stored in a ***.env*** file.
+- ***JWT token management***.
+- ***Logging*** and error handling.
 
 ---
 
 ## 2. Requirements 🧰
 
-- Python `3.x`
+- Python `3.9.x`
 - Access to the Credo AI API (API tokens required)
 - [Required Python packages](requirements.txt)
 
@@ -48,7 +47,7 @@ Easily download, upload, and transfer questionnaires along with their associated
 
     ```bash
     git clone <repository-url>
-    cd resource_manager
+    cd resource_cloner
     ```
 
 2. Install dependencies:
@@ -59,30 +58,30 @@ Easily download, upload, and transfer questionnaires along with their associated
 
 3. Set up environment variables:
 
-   Create a `.env` file with the following contents:
+   Create a `.env` file by filling out the `.env.template`. Please take careful note of the base paths and not only just tenant names.
 
     ```dotenv
-    OLD_API_TOKEN=your_old_api_token
-    OLD_JWT_TOKEN=your_old_jwt_token
-    OLD_TENANT=old_tenant_name
-    OLD_BASE_PATH=https://api.credo.ai
-    OLD_QUESTIONNAIRE_ID=your_questionnaire_id
-    OLD_QUESTIONNAIRE_VERSION=version_number
+    SRC_API_TOKEN=SOURCE_TENANT_API_KEY
+    SRC_JWT_TOKEN=SOURCE_TENANT_JWT
+    SRC_TENANT=credoaics
+    SRC_BASE_PATH=https://api.credo.ai
+    SRC_QUESTIONNAIRE_ID=DEFAULT
+    SRC_QUESTIONNAIRE_VERSION=2
 
-    NEW_API_TOKEN=your_new_api_token
-    NEW_JWT_TOKEN=your_new_jwt_token
-    NEW_TENANT=new_tenant_name
-    NEW_BASE_PATH=https://api.credo.ai
+    DEST_API_TOKEN=DEST_TENANT_API_TOKEN
+    DEST_JWT_TOKEN=DEST_TENANT_JWT
+    DEST_TENANT=credoai
+    DEST_BASE_PATH=https://api.credo-qa.com
     ```
 
 ---
 
 ## 4. Usage 🚀
 
-Run the following to copy **Custom Fields**, **Questionnaires**, **Triggers**, and **Actions**:
+***To copy Custom Fields, Questionnaires, Triggers, and Actions***, run:
 
 ```bash
-python main.py
+python resource_cloner.py
 ```
 
 ---
@@ -91,14 +90,12 @@ python main.py
 
 | File | Purpose |
 |:---|:---|
-| `download_questionnaire.py` | Download questionnaires from source tenant |
-| `upload_questionnaire.py` | Upload questionnaires to target tenant |
-| `triggers_actions.py` | Copy triggers and actions between tenants |
-| `get_bearer_token.py` | Manage JWT token generation and authentication |
-| `q_manager_utils.py` | Shared utilities and error handling |
-| `write_to_json.py` | JSON file handling utilities |
-| `upload_custom_fields.py` | Upload custom fields to target tenant |
-| `download_custom_fields.py` | Download custom fields from source tenant |
+| `env_manager.py` | Manage JWT token generation and authentication. |
+| `custom_field_manager.py` | Down/upload custom fields. |
+| `questionnaire_manager.py` | Down/upload questionnaires. |
+| `trigger_manager.py` | Copy triggers (and assoc. actions) between tenants. |
+| `utils.py` | Useful utilities |
+| `logging_config.py` | Set central logging config. |
 
 ---
 
@@ -136,17 +133,3 @@ For support, contact **support@credo.ai**.
 ## 8. References 📚
 
 - Credo AI API documentation
-
-
-## 9. Appendix
-
-To test between two tenants, consider `credoaics` on prod, and the `credoai` on the qa tenant.
-Go to `app.credo.ai` (prod)
-Enter `credoaics` as the organization name
-Select "Continue with Credo AI SSO"
-We should be logged in.
-
-Next, Go to `app.credo-qa.com` (qa)
-Enter `credoai` as the organization name
-Select "Continue with Credo AI SSO"
-We should be logged in.

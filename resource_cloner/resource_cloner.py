@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from custom_fields_manager import CustomFieldsManager
+from resource_cloner.custom_field_manager import CustomFieldManager
 from env_manager import EnvManager
 from questionnaire_manager import QuestionnaireManager
 from trigger_manager import TriggerManager
@@ -9,13 +9,13 @@ from utils import export_to_json, setup_logger
 LOGGER = setup_logger(Path(__file__).stem)
 
 
-def main():
+def resource_cloner():
     """Orchestrate migration of custom fields, questionnaires, triggers, and actions."""
 
     # Step 1: Upload custom fields from source tenant to destination tenant.
     em = EnvManager()
     LOGGER.info(f"[DATA MIGRATION START] {em.src.tenant} -> {em.dest.tenant}")
-    cfm = CustomFieldsManager(em)
+    cfm = CustomFieldManager(em)
     custom_fields = cfm.get_custom_fields()
     export_to_json(custom_fields, "src-custom-fields.json")
     upload_stats = cfm.upload_custom_fields(custom_fields)
@@ -46,4 +46,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    resource_cloner()
