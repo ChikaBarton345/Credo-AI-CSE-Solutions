@@ -1,12 +1,13 @@
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Optional, Union
-from dataclasses import dataclass
 
 import requests
 from dotenv import dotenv_values, load_dotenv, set_key
-from utils import PathLike, setup_logger
+from logging_config import setup_logger
+from utils import PathLike
 
-logger = setup_logger(Path(__file__).stem)
+LOGGER = setup_logger(Path(__file__).stem)
 
 load_dotenv(dotenv_path=".env", override=True)
 
@@ -84,17 +85,17 @@ class EnvManager:
         data = {"api_token": srcdest.api_token, "tenant": srcdest.tenant}
         tenant = srcdest.tenant
         try:
-            logger.debug(f"Retrieving JWT token for: {tenant}")
+            LOGGER.debug(f"Retrieving JWT token for: {tenant}")
             response = requests.post(url, json=data)
             response.raise_for_status()
             token = response.json().get("access_token")
             if token and write_to_file:
                 key = f"{src_or_dest.upper()}_JWT_TOKEN"
                 self.save_to_env(key, token)
-            logger.info(f"Successfully retrieved token for: {tenant}")
+            LOGGER.info(f"Successfully retrieved token for: {tenant}")
             return token
         except (requests.exceptions.RequestException, ValueError) as exc:
-            logger.error(f"Failed to retrieve JWT token: {exc}")
+            LOGGER.error(f"Failed to retrieve JWT token: {exc}")
             return None
 
     def save_to_env(self, key: str, val: Union[str, int]) -> bool:
@@ -118,7 +119,7 @@ class EnvManager:
             return True
 
         except (FileNotFoundError, IOError, OSError) as err:
-            logger.error(f"Failed to write to .env: {err}")
+            LOGGER.error(f"Failed to write to .env: {err}")
             return False
 
 
