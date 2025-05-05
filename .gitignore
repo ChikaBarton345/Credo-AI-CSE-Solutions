@@ -3,6 +3,7 @@ data
 logs
 .vscode
 .env
+.env.old
 cstool
 credo_ai_api_demo.ipynb
 output
