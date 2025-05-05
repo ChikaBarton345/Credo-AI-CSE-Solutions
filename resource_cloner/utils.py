@@ -64,7 +64,7 @@ def export_to_json(
     mkdir_safe(outpath)
     filepath = outpath / filename
     filepath = filepath.with_suffix(".json")
-    LOGGER.info(f"Attempting JSON export: {filepath.as_posix()}")
+    LOGGER.debug(f"Attempting JSON export: {filepath.as_posix()}")
     try:
         filepath.write_text(
             json.dumps(data, indent=indent, ensure_ascii=False),
