@@ -77,9 +77,8 @@ class CustomFieldsManager:
             `TypeError`: If field contains missing or invalid attributes.
         """
         try:
-            # Extract attributes from source, validating they exist.
             src_attrs = custom_field.get("attributes", {})
-            field_obj = CustomFieldDefinition(**src_attrs)
+            field_obj = CustomFieldDefinition(**src_attrs)  # Enforce strong typing.
             payload = {
                 "data": {"attributes": asdict(field_obj), "type": "custom_fields"}
             }
@@ -191,7 +190,6 @@ def main():
     upload_stats = cfm.upload_custom_fields(custom_fields)
     export_to_json(upload_stats, "custom-field-upload-stats.json")
     print(upload_stats)
-    print(1)
 
 
 if __name__ == "__main__":

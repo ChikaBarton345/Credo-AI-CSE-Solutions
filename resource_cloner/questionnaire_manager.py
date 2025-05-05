@@ -78,9 +78,7 @@ class QuestionnaireManager:
             )
             return {"data": []}
 
-    def _post_qnaire_base(
-        self, questionnaire: JSONData, qb_id: str
-    ) -> Optional[str]:
+    def _post_qnaire_base(self, questionnaire: JSONData, qb_id: str) -> Optional[str]:
         """Create a questionnaire base and return the questionnaire base ID.
 
         Args:
@@ -206,9 +204,7 @@ class QuestionnaireManager:
             LOGGER.exception(f"Failed to post questionnaire version to base: {qb_id}")
             raise
 
-    def _post_qnaire_w_ver_retry(
-        self, qb_id: str, payload: JSONData
-    ) -> JSONData:
+    def _post_qnaire_w_ver_retry(self, qb_id: str, payload: JSONData) -> JSONData:
         """Create a new questionnaire version; retry once with +1 to version if needed.
 
         If the first POST fails due to a version conflict (422), the version is
@@ -265,9 +261,7 @@ class QuestionnaireManager:
             LOGGER.exception("Failed to create questionnaire after two attempts.")
             raise
 
-    def _pair_qnaire_sections(
-        self, orig_qst: JSONDict, copy_qst: JSONDict
-    ) -> JSONList:
+    def _pair_qnaire_sections(self, orig_qst: JSONDict, copy_qst: JSONDict) -> JSONList:
         """Pair each section from the original and copy questionnaires.
 
         Args:
@@ -295,7 +289,16 @@ class QuestionnaireManager:
             questionnaire (JSONData): The original questionnaire to copy.
 
         Returns:
-            JSONDict: Mapping of original to new sections and the new questionnaire ID.
+            JSONDict: A dictionary with:
+                "old_new_questionnaire_map" (List[JSONDict]):
+                    A list of section pairings between the original and copied
+                    questionnaire, where each item is a (JSON) dict:
+                        {
+                            "original": <original_section_dict>,
+                            "copy": <copied_section_dict>
+                        }
+                "new_questionnaire_id" (str):
+                    The ID of the newly created questionnaire on the destination tenant.
         """
         qb_id = self._post_qnaire_base(questionnaire, f"{self.em.src.qid}_COPY")
         payload = self._prep_qnaire_payload(questionnaire)
