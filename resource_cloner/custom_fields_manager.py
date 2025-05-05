@@ -182,7 +182,7 @@ class CustomFieldsManager:
 
 
 def main():
-    """Retrieve all custom fields from the source tenant."""
+    """Upload custom fields from old tenant to new tenant."""
     em = EnvManager()
     cfm = CustomFieldsManager(em)
     custom_fields = cfm.get_custom_fields()

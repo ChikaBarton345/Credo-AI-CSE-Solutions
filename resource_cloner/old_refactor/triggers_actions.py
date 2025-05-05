@@ -6,7 +6,7 @@ import requests
 from dotenv import dotenv_values, load_dotenv
 from download_questionnaire import QuestionnaireDownloader
 from get_bearer_token import TokenManager
-from q_manager_utils import APIError, TriggersActionsError
+from resource_cloner.old_refactor.q_manager_utils import APIError, TriggersActionsError
 from upload_questionnaire import QuestionnaireUploader
 from utils import JSONData, JSONDict, JSONList
 

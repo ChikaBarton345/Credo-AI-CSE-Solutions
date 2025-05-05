@@ -3,7 +3,7 @@ from pathlib import Path
 import requests
 from dotenv import dotenv_values, load_dotenv
 from get_bearer_token import TokenManager
-from q_manager_utils import QuestionnaireError
+from resource_cloner.old_refactor.q_manager_utils import QuestionnaireError
 from utils import JSONData, export_to_json
 
 load_dotenv(dotenv_path=".env", override=True)
