@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from resource_cloner.custom_field_manager import CustomFieldManager
+from custom_field_manager import CustomFieldManager
 from env_manager import EnvManager
 from questionnaire_manager import QuestionnaireManager
 from trigger_manager import TriggerManager

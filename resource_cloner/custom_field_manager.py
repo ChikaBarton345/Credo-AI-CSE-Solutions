@@ -32,8 +32,6 @@ class CustomFieldManager:
                 auth and config environment variables.
         """
         self.em = env_manager
-        self.src_headers = {"Authorization": f"Bearer {self.em.src.jwt_token}"}
-        self.dest_headers = {"Authorization": f"Bearer {self.em.dest.jwt_token}"}
 
     def get_custom_fields(self) -> JSONData:
         """Retrieve custom fields from the source tenant.
@@ -48,7 +46,7 @@ class CustomFieldManager:
         LOGGER.info(f"Retrieving custom fields from: {self.em.src.tenant}")
 
         try:
-            response = requests.get(url, headers=self.src_headers)
+            response = requests.get(url, headers=self.em.src_headers)
             response.raise_for_status()
             data = response.json()
             count = len(data.get("data", []))
@@ -111,7 +109,9 @@ class CustomFieldManager:
         LOGGER.info(f"Uploading custom field: {field_name}")
 
         try:
-            response = requests.post(url, headers=self.dest_headers, json=custom_field)
+            response = requests.post(
+                url, headers=self.em.dest_headers, json=custom_field
+            )
 
             if response.status_code in (200, 201):
                 LOGGER.info(f"Successfully uploaded custom field: {field_name}")

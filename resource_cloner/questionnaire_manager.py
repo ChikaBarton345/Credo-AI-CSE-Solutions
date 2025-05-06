@@ -18,28 +18,17 @@ class QuestionnaireManager:
         """
         self.em = env_manager
 
-        self.src_headers = {
-            "Content-type": "application/vnd.api+json",
-            "Accept": "application/vnd.api+json",
-            "Authorization": f"Bearer {self.em.src.jwt_token}",
-        }
-        self.dest_headers = {
-            "Content-type": "application/vnd.api+json",
-            "Accept": "application/vnd.api+json",
-            "Authorization": f"Bearer {self.em.dest.jwt_token}",
-        }
-
     def _list_qnaires(self) -> JSONData:
         """List all questionnaires available in the source tenant.
 
         Returns:
             JSONData: JSON response containing questionnaire list.
         """
-        url = f"https://api.credo.ai/api/v2/{self.em.src.tenant}/questionnaire_bases"
+        url = f"{self.em.src.base_path}/api/v2/{self.em.src.tenant}/questionnaire_bases"
         LOGGER.info(f"Listing questionnaires for tenant: {self.em.src.tenant}")
 
         try:
-            response = requests.get(url, headers=self.src_headers)
+            response = requests.get(url, headers=self.em.src_headers)
             response.raise_for_status()
             questionnaire_count = len(response.json().get("data", []))
             LOGGER.info(f"Number of questionnaires retrieved: {questionnaire_count}")
@@ -64,7 +53,7 @@ class QuestionnaireManager:
 
         try:
             LOGGER.info(f"Getting questionnaire: {self.em.src.qid}+{self.em.src.qver}")
-            response = requests.get(url, headers=self.src_headers)
+            response = requests.get(url, headers=self.em.src_headers)
             response.raise_for_status()
             LOGGER.info(
                 f"Successfully retrieved questionnaire:"
@@ -111,7 +100,7 @@ class QuestionnaireManager:
         LOGGER.info(f"Creating questionnaire base: {qb_id}")
 
         try:
-            response = requests.post(url, json=payload, headers=self.dest_headers)
+            response = requests.post(url, json=payload, headers=self.em.dest_headers)
             if response.status_code in (200, 201):
                 LOGGER.info(f"Created questionnaire base: {qb_id}")
                 return response.json().get("data", {}).get("id", qb_id)
@@ -197,7 +186,7 @@ class QuestionnaireManager:
         LOGGER.info(f"Posting questionnaire version to base: {qb_id}")
 
         try:
-            response = requests.post(url, json=payload, headers=self.dest_headers)
+            response = requests.post(url, json=payload, headers=self.em.dest_headers)
             response.raise_for_status()
             LOGGER.info(f"Successfully posted questionnaire version to base: {qb_id}")
             return response

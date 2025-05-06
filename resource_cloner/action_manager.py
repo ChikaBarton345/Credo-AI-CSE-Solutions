@@ -14,6 +14,7 @@ LOGGER = setup_logger(Path(__file__).stem)
 
 class ActionManager:
     """`ActionManager` is designed to be contained within a `TriggerManager`."""
+
     def __init__(self, trigger_manager: TriggerManager):
         self.tm = trigger_manager  # `trigger_manager` is the parent `TriggerManager`.
 
@@ -33,7 +34,7 @@ class ActionManager:
         )
         LOGGER.info(f"Fetching trigger actions from: {self.tm.em.src.tenant}")
         try:
-            response = requests.get(url, headers=self.tm.src_headers)
+            response = requests.get(url, headers=self.tm.em.src_headers)
             response.raise_for_status()
             actions = response.json().get("data", [])
             LOGGER.info(f"Number of trigger actions retrieved: {len(actions)}")
@@ -160,7 +161,7 @@ class ActionManager:
             f"/{self.tm.em.dest.tenant}/trigger_actions"
         )
         try:
-            response = requests.post(url, headers=self.tm.dest_headers, json=action)
+            response = requests.post(url, headers=self.tm.em.dest_headers, json=action)
 
             if response.status_code == 201:
                 LOGGER.info("Action created successfully.")

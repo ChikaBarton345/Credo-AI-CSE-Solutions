@@ -32,6 +32,16 @@ class EnvManager:
         """
         self.env_path = Path(env_path)
         self.load_env_vars()
+        self.src_headers = {
+            "Content-type": "application/vnd.api+json",
+            "Accept": "application/vnd.api+json",
+            "Authorization": f"Bearer {self.src.jwt_token}",
+        }
+        self.dest_headers = {
+            "Content-type": "application/vnd.api+json",
+            "Accept": "application/vnd.api+json",
+            "Authorization": f"Bearer {self.dest.jwt_token}",
+        }
 
     def load_env_vars(self) -> None:
         """Load environment variables and group them by source and dest tenants."""
@@ -44,6 +54,7 @@ class EnvManager:
             qid=env.get("SRC_QUESTIONNAIRE_ID"),
             qver=env.get("SRC_QUESTIONNAIRE_VERSION"),
         )
+
         self.dest = TenantConfig(
             api_token=env.get("DEST_API_TOKEN"),
             jwt_token=env.get("DEST_JWT_TOKEN"),

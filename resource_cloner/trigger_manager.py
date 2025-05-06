@@ -15,8 +15,6 @@ LOGGER = setup_logger(Path(__file__).stem)
 class TriggerManager:
     def __init__(self, env_manager: EnvManager, q_copy_result: JSONData):
         self.em = env_manager
-        self.src_headers = {"Authorization": f"Bearer {self.em.src.jwt_token}"}
-        self.dest_headers = {"Authorization": f"Bearer {self.em.dest.jwt_token}"}
         self.q_copy_result = q_copy_result
         self.src_dest_qnaire_map = q_copy_result.get("old_new_questionnaire_map", {})
         self.q_copy_id = q_copy_result.get("new_questionnaire_id")
@@ -35,7 +33,7 @@ class TriggerManager:
         LOGGER.info(f"Fetching triggers from: {self.em.src.tenant}")
         url = f"{self.em.src.base_path}/api/v2/{self.em.src.tenant}/triggers"
         try:
-            response = requests.get(url, headers=self.src_headers)
+            response = requests.get(url, headers=self.em.src_headers)
             response.raise_for_status()
             json_response = response.json()
             triggers = json_response.get("data", [])
@@ -167,7 +165,7 @@ class TriggerManager:
         url = f"{self.em.dest.base_path}/api/v2/{self.em.dest.tenant}/triggers"
 
         try:
-            response = requests.post(url, headers=self.dest_headers, json=payload)
+            response = requests.post(url, headers=self.em.dest_headers, json=payload)
             if response.status_code == 201:
                 LOGGER.info(f"Created trigger for question: {question_id}")
                 return response.json().get("data", {}).get("id")
