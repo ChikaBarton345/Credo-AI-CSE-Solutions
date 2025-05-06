@@ -13,6 +13,7 @@ LOGGER = setup_logger(Path(__file__).stem)
 
 
 class ActionManager:
+    """`ActionManager` is designed to be contained within a `TriggerManager`."""
     def __init__(self, trigger_manager: TriggerManager):
         self.tm = trigger_manager  # `trigger_manager` is the parent `TriggerManager`.
 
