@@ -38,9 +38,6 @@ class CustomFieldManager:
 
         Returns:
             JSONData: JSON response containing custom fields data.
-
-        Raises:
-            `CustomFieldsError`: If retrieval fails.
         """
         url = f"{self.em.src.base_path}/api/v2/{self.em.src.tenant}/custom_fields"
         LOGGER.info(f"Retrieving custom fields from: {self.em.src.tenant}")
